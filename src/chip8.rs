@@ -1,4 +1,4 @@
-const PROGRAM_START_ADDRESS: u16 = 0x200;
+pub const PROGRAM_START_ADDRESS: u16 = 0x200;
 
 #[derive(Debug)]
 pub struct Chip8 {
@@ -35,5 +35,9 @@ impl Chip8 {
 
     pub fn opcode_at_start_address(&self) -> u8 {
         self.memory[PROGRAM_START_ADDRESS as usize]
+    }
+
+    pub fn pc(&self) -> u16 {
+        self.pc
     }
 }
