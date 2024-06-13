@@ -1,39 +1,27 @@
+mod chip8;
 
-#[derive(Debug)]
-struct Chip8 {
-    registers: [u8; 16],
-    memory: [u8; 4096],
-    index_register: u16,
-    pc: u16,            // program counter
-    stack: [u16; 16],
-    sp: u8,             // stack pointer
-    delay_timer: u8,
-    sound_timer: u8,
-    keypad: [u8; 16],
-    display_memory: [[u32; 64]; 32],
+fn get_chip8_opcodes_from_file(file_path: &str) -> Vec<u16> {
+    let contents = std::fs::read_to_string(file_path).unwrap();
 
-    opcode: u16,
-}
+    let mut opcodes = Vec::new();
 
-impl Chip8 {
-    pub fn new() -> Self {
-        Self {
-            registers: [0; 16],
-            memory: [0; 4096],
-            index_register: 0,
-            pc: 0,
-            stack: [0; 16],
-            sp: 0,
-            delay_timer: 0,
-            sound_timer: 0,
-            keypad: [0; 16],
-            display_memory: [[0; 64]; 32],
-            opcode: 0,
-        }
+    for value in contents.trim().replace("\n", " ").split(" ") {
+        let hex_value = match u16::from_str_radix(value, 16) {
+            Ok(v) => v,
+            Err(e) => {
+                panic!("Tried converting {} and got {}", value, e)
+            }
+        };
+        opcodes.push(hex_value);
     }
+
+    opcodes
 }
 
 fn main() {
-    let chip8 = Chip8::new();
-    println!("{:?}", chip8);
+    let opcodes = get_chip8_opcodes_from_file("./examples/maze.ch8");
+
+    for code in opcodes {
+        println!("{:x}", code);
+    }
 }
