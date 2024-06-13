@@ -1,4 +1,4 @@
-pub const PROGRAM_START_ADDRESS: u16 = 0x200;
+const PROGRAM_START_ADDRESS: u16 = 0x200;
 
 #[derive(Debug)]
 pub struct Chip8 {
@@ -32,12 +32,16 @@ impl Chip8 {
             opcode: 0,
         }
     }
+}
 
-    pub fn opcode_at_start_address(&self) -> u8 {
-        self.memory[PROGRAM_START_ADDRESS as usize]
-    }
 
-    pub fn pc(&self) -> u16 {
-        self.pc
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_chip8_constructor() {
+        let c8 = Chip8::new();
+        assert_eq!(c8.pc, PROGRAM_START_ADDRESS)
     }
 }

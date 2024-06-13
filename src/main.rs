@@ -1,5 +1,4 @@
 mod chip8;
-mod tests;
 
 use chip8::Chip8;
 
