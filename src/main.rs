@@ -1,6 +1,6 @@
 mod chip8;
 
-fn get_chip8_opcodes_from_file(file_path: &str) -> Vec<u16> {
+fn read_instructions_from_file(file_path: &str) -> Vec<u16> {
     let contents = std::fs::read_to_string(file_path).unwrap();
 
     let mut opcodes = Vec::new();
@@ -19,7 +19,7 @@ fn get_chip8_opcodes_from_file(file_path: &str) -> Vec<u16> {
 }
 
 fn main() {
-    let opcodes = get_chip8_opcodes_from_file("./examples/maze.ch8");
+    let opcodes = read_instructions_from_file("./examples/maze.ch8");
 
     for code in opcodes {
         println!("{:x}", code);
