@@ -137,6 +137,187 @@ impl Chip8 {
     fn jmp(&mut self, opcode: u16) {
         self.pc = opcode & 0x0FFF;
     }
+
+    /// `2nnn`: Call the subroutine at `nnn`
+    fn call(&mut self, opcode: u16) {
+        self.stack[self.sp as usize] = self.pc;
+        self.sp += 1;
+
+        self.pc = opcode & 0x0FFF;
+    }
+
+    /// `3xkk`: Skip the next instruction if `Vx == kk`
+    fn se_byte(&mut self, opcode: u16) {
+
+    }
+
+    /// `4xkk`: Skip the next instruction if `Vx != kk`
+    fn sne_byte(&mut self, opcode: u16) {
+
+    }
+
+    /// `5xy0`: Skip the next instruction if `Vx == Vy`
+    fn se_register(&mut self, opcode: u16) {
+
+    }
+
+    /// `6xkk`: Load `kk` into `Vx`
+    fn ld_byte(&mut self, opcode: u16) {
+
+    }
+    
+    /// `7xkk`: Add `kk` with the value stored in `Vx` and store the result in `Vx`
+    fn add_byte(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy0`: Store the value in `Vy` into `Vx`
+    fn ld_register(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy1`: Perform a bitwise OR on the values stored in `Vx`` and `Vy`
+    /// then store the result in `Vx`
+    fn or(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy2`: Perform a bitwise AND on the values stored in `Vx`` and `Vy`
+    /// then store the result in `Vx`
+    fn and(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy3`: Perform a bitwise XOR on the values stored in `Vx`` and `Vy`
+    /// then store the result in `Vx`
+    fn xor(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy4`: Perform an addition with the values in `Vx` and `Vy` then store the
+    /// result in `Vx`.
+    /// 
+    /// If the result exceeds the capacity of a u8, `VF` is set to 1, otherwise it is set to 0.
+    /// Only the rightmost 8 bits of the result is stored in `Vx`.
+    fn add_registers(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy5`: Subtract `Vx - Vy` and store the result in `Vx`. If `Vx > Vy`, `VF` is set to 1, otherwise 0.
+    fn sub_registers(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy6`: Shift the bits in `Vx` to the right by 1 and store the result in `Vx`.
+    /// If the least significant bit in `Vx` is 1, set `VF` to 1, otherwise 0.
+    fn shr(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xy7`: Subtract `Vy - Vx` and store the result in `Vx`. If `Vy > Vx`, `VF` is set to 1, otherwise 0.
+    fn subn_registers(&mut self, opcode: u16) {
+
+    }
+
+    /// `8xyE`: Shift the bits in `Vx` to the left by 1. If the most significant bit in `Vx` was 1, `VF` is set to 1, otherwise 0.
+    fn shl(&mut self, opcode: u16) {
+
+    }
+
+    /// `9xy0`: Skip the next instruction if `Vx != Vy`
+    fn sne_register(&mut self, opcode: u16) {
+
+    }
+
+    /// `Annn`: Stores address `nnn` in `self.index_register`
+    fn ld_i(&mut self, opcode: u16) {
+
+    }
+
+    /// `Bnnn`: Jump to the address `nnn + V0`
+    fn jmp_v0(&mut self, opcode: u16) {
+
+    }
+
+    /// `Cxkk`: Perform a bitwise AND between a random byte and `kk`. Store the value in `Vx`
+    /// `Vx -> RAND & kk`
+    fn rnd(&mut self, opcode: u16) {
+
+    }
+
+    /// `Dxyn`: Read `n` bytes from memory starting at the address stored in `index_register`.
+    /// These bytes are then displayed as sprites on screen at coordinates (`Vx`, `Vy`).
+    /// 
+    /// Sprites are XOR'd onto the existing screen. If this causes any pixels to be erased, `VF` is
+    /// set to 1, otherwise it is set to 0.
+    /// 
+    /// If the sprite is positioned so part of it is outside the coordinates of the display, it wraps
+    /// around to the opposite side of the screen
+    fn draw(&mut self, opcode: u16) {
+
+    }
+
+    /// `Ex9E`: Skip the next instruction if the key with value `Vx` is pressed.
+    fn skip_key_pressed(&mut self, opcode: u16) {
+
+    }
+
+    /// `ExA1`: Skip the next instruction if the key with value `Vx` is not pressed.
+    fn skip_key_not_pressed(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx07`: Set `Vx -> delay_timer`
+    fn ld_delay_timer(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx0A`: Wait for a key press and store the value of the key in `Vx`
+    /// 
+    /// All executions stop until a key is pressed.
+    fn ld_key_press(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx15`: Set the delay_timer to the value of `Vx`
+    fn set_delay_timer(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx18`: Set the sound_timer to the value of `Vx`
+    fn set_sound_timer(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx1E`: Add `index_register` and `Vx` and store the result in `index_register`
+    fn add_index_register(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx29`: Load the address of the spirte corresponding to the value of `Vx` into `index_register`.
+    fn ld_sprite(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx33`:  Store BCD (binary-coded decimal) representation of `Vx` in
+    /// memory locations `index_register`, `index_register+1`, and `index_register+2`.
+    /// 
+    /// Take the decimal value of Vx, and place the hundreds digit in memory at location in `index_register`,
+    /// the tens digit at location `index_register+1`, and the ones digit at location `index_register+2`.
+    fn ld_bcd(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx55`: Store registers `V0` through `Vx` into memory starting at the address in `index_register`
+    fn ld_registers_into_index_register(&mut self, opcode: u16) {
+
+    }
+
+    /// `Fx65`: Read values in memory starting at the address in `index_register`, storing them into registers
+    /// `V0` to `Vx`
+    fn read_index_register_into_registers(&mut self, opcode: u16) {
+        
+    }
 }
 
 #[cfg(test)]
@@ -231,4 +412,93 @@ mod tests {
         assert_eq!(c8.pc, 0xbea);
     }
 
+    #[test]
+    fn test_call() {
+        let mut c8 = Chip8::_new();
+        c8.pc = 0x220;
+
+        c8.stack[0] = 0x208;
+        c8.sp = 1;
+
+        c8.call(0x2512);
+
+        assert_eq!(c8.pc, 0x512);
+        assert_eq!(c8.stack[0], 0x208);
+        assert_eq!(c8.stack[1], 0x220);
+        assert_eq!(c8.sp, 2)
+    }
+
+    #[test]
+    fn test_se_byte_should_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x220;
+        c8.registers[10] = 0x32;
+
+        c8.se_byte(0x3a32);
+
+        assert_eq!(c8.pc, 0x0222);
+    }
+
+    #[test]
+    fn test_se_byte_shouldnt_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x220;
+        c8.registers[10] = 0x32;
+
+        c8.se_byte(0x3abc);
+
+        assert_eq!(c8.pc, 0x0220);
+    }
+
+    #[test]
+    fn test_sne_should_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x220;
+        c8.registers[10] = 0x32;
+
+        c8.se_byte(0x4abc);
+
+        assert_eq!(c8.pc, 0x0222);
+    }
+
+    #[test]
+    fn test_sne_shouldnt_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x220;
+        c8.registers[10] = 0x32;
+
+        c8.se_byte(0x4a32);
+
+        assert_eq!(c8.pc, 0x0220);
+    }
+
+    #[test]
+    fn test_se_register_should_skip() {
+        let mut c8 = Chip8::_new();
+        c8.pc = 0x220;
+
+        c8.registers[10] = 0x32;
+        c8.registers[3] = 0x32;
+
+        c8.se_register(0x5a30);
+
+        assert_eq!(c8.pc, 0x0222);
+    }
+
+    #[test]
+    fn test_se_register_shouldnt_skip() {
+        let mut c8 = Chip8::_new();
+        c8.pc = 0x220;
+
+        c8.registers[10] = 0x32;
+        c8.registers[3] = 0x31;
+
+        c8.se_register(0x5a30);
+
+        assert_eq!(c8.pc, 0x0220);
+    }
 }
