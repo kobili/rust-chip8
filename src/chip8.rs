@@ -3,6 +3,8 @@ use rand::Rng;
 use crate::constants::{
     FONT_SET,
     FONT_SET_START_ADDRESS,
+    PIXEL_OFF,
+    PIXEL_ON,
     PROGRAM_START_ADDRESS,
 };
 
@@ -23,6 +25,7 @@ pub struct Chip8 {
     rng: rand::rngs::ThreadRng,
 }
 
+// setup methods
 impl Chip8 {
     fn _new() -> Self {
         Self {
@@ -106,13 +109,35 @@ impl Chip8 {
             self.memory[FONT_SET_START_ADDRESS + i] = FONT_SET[i];
         }
     }
+}
 
+// operation methods
+impl Chip8 {
     /// Returns a random byte valued in the range `[0, 255]`
     fn rand_byte(&mut self) -> u8 {
         self.rng.gen::<u8>()
     }
-}
 
+    /// `00E0`: Completely clear the display memory
+    fn cls(&mut self) {
+        for i in 0..32 {
+            for j in 0..64 {
+                self.display_memory[i][j] = PIXEL_OFF;
+            }
+        }
+    }
+
+    /// `00EE`: Return from a subroutine
+    fn ret(&mut self) {
+        self.sp -= 1;
+        self.pc = self.stack[self.sp as usize];
+    }
+
+    /// `1nnn`: Jump to address `nnn` (`self.pc` -> `nnn`)
+    fn jmp(&mut self, opcode: u16) {
+        self.pc = opcode & 0x0FFF;
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -163,4 +188,47 @@ mod tests {
             assert_eq!(c8.memory[address], FONT_SET[i]);
         }
     }
+
+    #[test]
+    fn test_cls() {
+        let mut c8 = Chip8::_new();
+
+        // setup: Fill certain pixels on the display
+        c8.display_memory[23][35] = PIXEL_ON;
+        c8.display_memory[12][63] = PIXEL_ON;
+        c8.display_memory[8][40] = PIXEL_ON;
+
+        c8.cls();
+
+        assert_eq!(c8.display_memory[23][35], PIXEL_OFF);
+        assert_eq!(c8.display_memory[12][63], PIXEL_OFF);
+        assert_eq!(c8.display_memory[8][40], PIXEL_OFF);
+    }
+
+    #[test]
+    fn test_ret() {
+        let mut c8 = Chip8::_new();
+
+        // setup: Point pc to somewhere random and add a return address to the stack
+        c8.pc = 0x512;
+        c8.stack[0] = 0x208;
+        c8.sp = 1;
+
+        c8.ret();
+
+        assert_eq!(c8.pc, 0x208);
+        assert_eq!(c8.sp, 0);
+    }
+
+    #[test]
+    fn test_jmp() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x220;
+
+        c8.jmp(0x1bea);
+
+        assert_eq!(c8.pc, 0xbea);
+    }
+
 }

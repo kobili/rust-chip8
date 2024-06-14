@@ -20,3 +20,6 @@ pub const FONT_SET: [u8; 80] = [
 ];
 
 pub const FONT_SET_START_ADDRESS: usize = 0x50;
+
+pub const PIXEL_ON: u32 = 0xFFFFFFFF;
+pub const PIXEL_OFF: u32 = 0x00000000;
