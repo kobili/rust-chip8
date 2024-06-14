@@ -2,30 +2,8 @@ mod chip8;
 
 use chip8::Chip8;
 
-fn read_instructions_from_file(file_path: &str) -> Vec<u16> {
-    let contents = std::fs::read_to_string(file_path).unwrap();
-
-    let mut opcodes = Vec::new();
-
-    for value in contents.trim().replace("\n", " ").split(" ") {
-        let hex_value = match u16::from_str_radix(value, 16) {
-            Ok(v) => v,
-            Err(e) => {
-                panic!("Error parsing instruction file. Tried converting {} and got {}", value, e)
-            }
-        };
-        opcodes.push(hex_value);
-    }
-
-    opcodes
-}
 
 fn main() {
-    let opcodes = read_instructions_from_file("./examples/maze.ch8");
-
-    for code in opcodes {
-        println!("{:x}", code);
-    }
-
-    let c8 = Chip8::new();
+    let mut c8 = Chip8::new();
+    c8.load_instructions_from_file("./examples/maze.ch8");
 }

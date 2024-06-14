@@ -32,6 +32,38 @@ impl Chip8 {
             opcode: 0,
         }
     }
+
+    pub fn load_instructions_from_file(&mut self, file_path: &str) {
+        let contents = std::fs::read_to_string(file_path).unwrap();
+
+        let mut opcodes = Vec::new();
+
+        for value in contents.trim().replace("\n", " ").split(" ") {
+            let hex_value = match u16::from_str_radix(value, 16) {
+                Ok(v) => v,
+                Err(e) => {
+                    panic!("Error parsing instruction file. Tried converting {} and got {}", value, e)
+                }
+            };
+            opcodes.push(hex_value);
+        }
+
+        self.load_opcodes_into_memory(&opcodes);
+    }
+
+    fn load_opcodes_into_memory(&mut self, opcodes: &Vec<u16>) {
+        let mut i = PROGRAM_START_ADDRESS as usize;
+
+        for opcode in opcodes {
+            let little_end = (*opcode & 0x00FF) as u8;
+            let big_end = ((*opcode & 0xFF00) >> 8) as u8;
+
+            self.memory[i] = little_end;
+            self.memory[i+1] = big_end;
+
+            i += 2;
+        }
+    }
 }
 
 
@@ -43,5 +75,33 @@ mod tests {
     fn test_chip8_constructor() {
         let c8 = Chip8::new();
         assert_eq!(c8.pc, PROGRAM_START_ADDRESS)
+    }
+
+    #[test]
+    fn test_load_opcodes_into_memory() {
+        let mut c8 = Chip8::new();
+        let opcodes = vec![0x6000u16, 0x6100u16, 0xa222u16];
+
+        c8.load_opcodes_into_memory(&opcodes);
+
+        let expected_byte_order = vec![
+            0x00u8,
+            0x60u8,
+            0x00u8,
+            0x61u8,
+            0x22u8,
+            0xa2u8,
+        ];
+
+        // assert that nothing is loaded into reserved memory
+        for i in 0..PROGRAM_START_ADDRESS as usize {
+            assert_eq!(c8.memory[i], 0);
+        }
+
+        // assert that instructions are loaded into memory starting at 0x2000
+        for i in 0..(opcodes.len() * 2) {
+            let address = i + PROGRAM_START_ADDRESS as usize;
+            assert_eq!(c8.memory[address], expected_byte_order[i]);
+        }
     }
 }
