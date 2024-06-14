@@ -1,4 +1,25 @@
-const PROGRAM_START_ADDRESS: u16 = 0x200;
+const PROGRAM_START_ADDRESS: usize = 0x200;
+
+const FONT_SET: [u8; 80] = [
+    0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+	0x20, 0x60, 0x20, 0x20, 0x70, // 1
+	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+	0xF0, 0x80, 0xF0, 0x80, 0x80, // F
+];
+
+const FONT_SET_START_ADDRESS: usize = 0x50;
 
 #[derive(Debug)]
 pub struct Chip8 {
@@ -17,12 +38,12 @@ pub struct Chip8 {
 }
 
 impl Chip8 {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Self {
             registers: [0; 16],
             memory: [0; 4096],
             index_register: 0,
-            pc: PROGRAM_START_ADDRESS,
+            pc: PROGRAM_START_ADDRESS as u16,
             stack: [0; 16],
             sp: 0,
             delay_timer: 0,
@@ -33,7 +54,27 @@ impl Chip8 {
         }
     }
 
-    pub fn load_instructions_from_file(&mut self, file_path: &str) {
+    pub fn new(instruction_file: &str) -> Self {
+        let mut c8 = Self {
+            registers: [0; 16],
+            memory: [0; 4096],
+            index_register: 0,
+            pc: PROGRAM_START_ADDRESS as u16,
+            stack: [0; 16],
+            sp: 0,
+            delay_timer: 0,
+            sound_timer: 0,
+            keypad: [0; 16],
+            display_memory: [[0; 64]; 32],
+            opcode: 0,
+        };
+        c8.load_fontset();
+        c8.load_instructions_from_file(instruction_file);
+
+        c8
+    }
+
+    fn load_instructions_from_file(&mut self, file_path: &str) {
         let contents = std::fs::read_to_string(file_path).unwrap();
 
         let mut opcodes = Vec::new();
@@ -52,7 +93,7 @@ impl Chip8 {
     }
 
     fn load_opcodes_into_memory(&mut self, opcodes: &Vec<u16>) {
-        let mut i = PROGRAM_START_ADDRESS as usize;
+        let mut i = PROGRAM_START_ADDRESS;
 
         for opcode in opcodes {
             let little_end = (*opcode & 0x00FF) as u8;
@@ -64,6 +105,12 @@ impl Chip8 {
             i += 2;
         }
     }
+
+    fn load_fontset(&mut self) {
+        for i in 0..FONT_SET.len() {
+            self.memory[FONT_SET_START_ADDRESS + i] = FONT_SET[i];
+        }
+    }
 }
 
 
@@ -73,13 +120,13 @@ mod tests {
 
     #[test]
     fn test_chip8_constructor() {
-        let c8 = Chip8::new();
-        assert_eq!(c8.pc, PROGRAM_START_ADDRESS)
+        let c8 = Chip8::_new();
+        assert_eq!(c8.pc, 0x200);
     }
 
     #[test]
     fn test_load_opcodes_into_memory() {
-        let mut c8 = Chip8::new();
+        let mut c8 = Chip8::_new();
         let opcodes = vec![0x6000u16, 0x6100u16, 0xa222u16];
 
         c8.load_opcodes_into_memory(&opcodes);
@@ -94,14 +141,26 @@ mod tests {
         ];
 
         // assert that nothing is loaded into reserved memory
-        for i in 0..PROGRAM_START_ADDRESS as usize {
+        for i in 0..PROGRAM_START_ADDRESS {
             assert_eq!(c8.memory[i], 0);
         }
 
         // assert that instructions are loaded into memory starting at 0x2000
         for i in 0..(opcodes.len() * 2) {
-            let address = i + PROGRAM_START_ADDRESS as usize;
+            let address = i + PROGRAM_START_ADDRESS;
             assert_eq!(c8.memory[address], expected_byte_order[i]);
+        }
+    }
+
+    #[test]
+    fn test_load_fontset() {
+        let mut c8 = Chip8::_new();
+
+        c8.load_fontset();
+
+        for i in 0..FONT_SET.len() {
+            let address = FONT_SET_START_ADDRESS + i;
+            assert_eq!(c8.memory[address], FONT_SET[i]);
         }
     }
 }
