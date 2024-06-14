@@ -182,7 +182,7 @@ impl Chip8 {
 
     }
 
-    /// `8xy2`: Perform a bitwise AND on the values stored in `Vx`` and `Vy`
+    /// `8xy2`: Perform a bitwise AND on the values stored in `Vx` and `Vy`
     /// then store the result in `Vx`
     fn and(&mut self, opcode: u16) {
 
@@ -208,8 +208,8 @@ impl Chip8 {
 
     }
 
-    /// `8xy6`: Shift the bits in `Vx` to the right by 1 and store the result in `Vx`.
-    /// If the least significant bit in `Vx` is 1, set `VF` to 1, otherwise 0.
+    /// `8xy6`: If the least-significant bit of Vy is 1, then VF is set to 1, otherwise 0.
+    /// Then Vy is shifted right by 1 and the result is stored in Vx.
     fn shr(&mut self, opcode: u16) {
 
     }
@@ -219,7 +219,8 @@ impl Chip8 {
 
     }
 
-    /// `8xyE`: Shift the bits in `Vx` to the left by 1. If the most significant bit in `Vx` was 1, `VF` is set to 1, otherwise 0.
+    /// `8xyE`: If the most-significant bit of Vy is 1, then VF is set to 1, otherwise to 0.
+    /// Then Vy is shifted left by 1 and the result is stored in Vx.
     fn shl(&mut self, opcode: u16) {
 
     }
@@ -316,7 +317,7 @@ impl Chip8 {
     /// `Fx65`: Read values in memory starting at the address in `index_register`, storing them into registers
     /// `V0` to `Vx`
     fn read_index_register_into_registers(&mut self, opcode: u16) {
-        
+
     }
 }
 
@@ -500,5 +501,131 @@ mod tests {
         c8.se_register(0x5a30);
 
         assert_eq!(c8.pc, 0x0220);
+    }
+
+    #[test]
+    fn test_ld_byte() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+
+        c8.ld_byte(0x6abd);
+
+        assert_eq!(c8.registers[0xa], 0xbd);
+    }
+
+    #[test]
+    fn test_add_byte() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+
+        c8.add_byte(0x7a05);
+
+        assert_eq!(c8.registers[0xa], 0x28);
+    }
+
+    #[test]
+    fn test_ld_register() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+        c8.registers[0xd] = 0x48;
+
+        c8.ld_register(0x8ad0);
+
+        assert_eq!(c8.registers[0xa], 0x48);
+    }
+
+    #[test]
+    fn test_or() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+        c8.registers[0xd] = 0x48;
+
+        c8.or(0x8ad1);
+
+        assert_eq!(c8.registers[0xa], 0x23 | 0x48);
+    }
+
+    #[test]
+    fn test_and() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0xF0;
+        c8.registers[0xd] = 0x0F;
+
+        c8.and(0x8ad2);
+
+        assert_eq!(c8.registers[0xa], 0x0);
+    }
+
+    #[test]
+    fn test_xor() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+        c8.registers[0xd] = 0x48;
+
+        c8.xor(0x8ad3);
+
+        assert_eq!(c8.registers[0xa], 0x23 ^ 0x48);
+    }
+
+    #[test]
+    fn test_add_registers() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x23;
+        c8.registers[0xd] = 0x48;
+        c8.registers[0xf] = 0x01;
+
+        c8.add_registers(0x8ad4);
+
+        assert_eq!(c8.registers[0xa], 0x23 + 0x48);
+        assert_eq!(c8.registers[0xf], 0x0);
+    }
+
+    #[test]
+    fn test_add_registers_overflow() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0xFF;
+        c8.registers[0xd] = 0x1;
+        c8.registers[0xf] = 0x0;
+
+        c8.add_registers(0x8ad4);
+
+        assert_eq!(c8.registers[0xa], 0x0);
+        assert_eq!(c8.registers[0xf], 0x1);
+    }
+
+    #[test]
+    fn test_sub_registers() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0xFF;
+        c8.registers[0xd] = 0x1;
+        c8.registers[0xf] = 0x0;
+
+        c8.sub_registers(0x8ad5);
+        
+        assert_eq!(c8.registers[0xa], 0xFE);
+        assert_eq!(c8.registers[0xf], 0x1);
+    }
+
+    #[test]
+    fn test_sub_registers_underflow() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x2;
+        c8.registers[0xd] = 0xFF;
+        c8.registers[0xf] = 0x0;
+
+        c8.sub_registers(0x8ad5);
+        
+        assert_eq!(c8.registers[0xa], 0x1);
+        assert_eq!(c8.registers[0xf], 0x0);
     }
 }
