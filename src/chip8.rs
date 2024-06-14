@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::constants::{
     FONT_SET,
     FONT_SET_START_ADDRESS,
@@ -16,8 +18,9 @@ pub struct Chip8 {
     sound_timer: u8,
     keypad: [u8; 16],
     display_memory: [[u32; 64]; 32],
-
     opcode: u16,
+
+    rng: rand::rngs::ThreadRng,
 }
 
 impl Chip8 {
@@ -34,6 +37,8 @@ impl Chip8 {
             keypad: [0; 16],
             display_memory: [[0; 64]; 32],
             opcode: 0,
+
+            rng: rand::thread_rng(),
         }
     }
 
@@ -50,7 +55,9 @@ impl Chip8 {
             sound_timer: 0,
             keypad: [0; 16],
             display_memory: [[0; 64]; 32],
+
             opcode: 0,
+            rng: rand::thread_rng(),
         };
         c8.load_fontset();
         c8.load_instructions_from_file(instruction_file);
@@ -98,6 +105,11 @@ impl Chip8 {
         for i in 0..FONT_SET.len() {
             self.memory[FONT_SET_START_ADDRESS + i] = FONT_SET[i];
         }
+    }
+
+    /// Returns a random byte valued in the range `[0, 255]`
+    fn rand_byte(&mut self) -> u8 {
+        self.rng.gen::<u8>()
     }
 }
 
