@@ -37,6 +37,7 @@ impl Chip8 {
         }
     }
 
+    /// Creates and initializes a new Chip8 instance with the given instructions
     pub fn new(instruction_file: &str) -> Self {
         let mut c8 = Self {
             registers: [0; 16],
@@ -57,6 +58,7 @@ impl Chip8 {
         c8
     }
 
+    /// Reads instructions from a `.ch8` file and loads the opcodes into memory
     fn load_instructions_from_file(&mut self, file_path: &str) {
         let contents = std::fs::read_to_string(file_path).unwrap();
 
@@ -75,6 +77,8 @@ impl Chip8 {
         self.load_opcodes_into_memory(&opcodes);
     }
 
+    /// Given an array of 16-bit opcodes, loads them into memory
+    /// starting at address 0x200, in little-endian order
     fn load_opcodes_into_memory(&mut self, opcodes: &Vec<u16>) {
         let mut i = PROGRAM_START_ADDRESS;
 
@@ -89,6 +93,7 @@ impl Chip8 {
         }
     }
 
+    /// Loads fontsets into memory starting at address 0x50
     fn load_fontset(&mut self) {
         for i in 0..FONT_SET.len() {
             self.memory[FONT_SET_START_ADDRESS + i] = FONT_SET[i];
