@@ -492,6 +492,14 @@ mod tests {
         }
     }
 
+    const ZERO_SPRITE: [[u8; 8]; 5] = [
+        [1,1,1,1,0,0,0,0],  // 0xF0
+        [1,0,0,1,0,0,0,0],  // 0x90
+        [1,0,0,1,0,0,0,0],  // 0x90
+        [1,0,0,1,0,0,0,0],  // 0x90
+        [1,1,1,1,0,0,0,0],  // 0xF0
+    ];
+
     #[test]
     fn test_chip8_constructor() {
         let c8 = Chip8::_new();
@@ -978,17 +986,9 @@ mod tests {
         c8.load_fontset();
 
         // preload a sprite at (1, 1)
-        let zero_sprite = [
-            [1,1,1,1,0,0,0,0],  // 0xF0
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,1,1,1,0,0,0,0],  // 0xF0
-        ];
-
         for i in 0..5 {
             for j in 0..8 {
-                c8.display_memory[i+1][j+1] = if zero_sprite[i][j] == 1u8 { PIXEL_ON } else { PIXEL_OFF };
+                c8.display_memory[i+1][j+1] = if ZERO_SPRITE[i][j] == 1u8 { PIXEL_ON } else { PIXEL_OFF };
             }
         }
 
@@ -1016,13 +1016,6 @@ mod tests {
         let mut c8 = Chip8::_new();
         c8.load_fontset();
 
-        let zero_sprite = [
-            [1,1,1,1,0,0,0,0],  // 0xF0
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,0,0,1,0,0,0,0],  // 0x90
-            [1,1,1,1,0,0,0,0],  // 0xF0
-        ];
 
         let mut expected_display = [[PIXEL_OFF; 64]; 32];
 
@@ -1031,7 +1024,7 @@ mod tests {
 
         for i in 0..5 {
             for j in 0..8 {
-                expected_display[(y + i) % 32][(x + j) % 64] = if zero_sprite[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
+                expected_display[(y + i) % 32][(x + j) % 64] = if ZERO_SPRITE[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
             }
         }
 
