@@ -148,50 +148,89 @@ impl Chip8 {
 
     /// `3xkk`: Skip the next instruction if `Vx == kk`
     fn se_byte(&mut self, opcode: u16) {
+        let x = ((opcode & 0x0F00) >> 8) as u8;
+        let kk = (opcode & 0x00FF) as u8;
 
+        let vx = self.registers[usize::from(x)];
+        
+        if vx == kk {
+            self.pc += 0x02;
+        }
     }
 
     /// `4xkk`: Skip the next instruction if `Vx != kk`
     fn sne_byte(&mut self, opcode: u16) {
+        let x = ((opcode & 0x0F00) >> 8) as u8;
+        let kk = (opcode & 0x00FF) as u8;
 
+        let vx = self.registers[usize::from(x)];
+        if vx != kk {
+            self.pc += 0x02;
+        }
     }
 
     /// `5xy0`: Skip the next instruction if `Vx == Vy`
     fn se_register(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let vx = self.registers[x];
+        let vy = self.registers[y];
+
+        if vx == vy {
+            self.pc += 2;
+        }
     }
 
     /// `6xkk`: Load `kk` into `Vx`
     fn ld_byte(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let kk = (opcode & 0x00FF) as u8;
 
+        self.registers[x] = kk;
     }
     
     /// `7xkk`: Add `kk` with the value stored in `Vx` and store the result in `Vx`
     fn add_byte(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let kk = (opcode & 0x00FF) as u8;
 
+        self.registers[x] = self.registers[x].wrapping_add(kk);
     }
 
     /// `8xy0`: Store the value in `Vy` into `Vx`
     fn ld_register(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        self.registers[x] = self.registers[y];
     }
 
     /// `8xy1`: Perform a bitwise OR on the values stored in `Vx`` and `Vy`
     /// then store the result in `Vx`
     fn or(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        self.registers[x] = self.registers[x] | self.registers[y];
     }
 
     /// `8xy2`: Perform a bitwise AND on the values stored in `Vx` and `Vy`
     /// then store the result in `Vx`
     fn and(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        self.registers[x] = self.registers[x] & self.registers[y]
     }
 
     /// `8xy3`: Perform a bitwise XOR on the values stored in `Vx`` and `Vy`
     /// then store the result in `Vx`
     fn xor(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        self.registers[x] = self.registers[x] ^ self.registers[y]
     }
 
     /// `8xy4`: Perform an addition with the values in `Vx` and `Vy` then store the
@@ -200,50 +239,127 @@ impl Chip8 {
     /// If the result exceeds the capacity of a u8, `VF` is set to 1, otherwise it is set to 0.
     /// Only the rightmost 8 bits of the result is stored in `Vx`.
     fn add_registers(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let res = self.registers[x].wrapping_add(self.registers[y]);
+
+        if res < self.registers[x] {
+            // an overflow happened
+            self.registers[0xF] = 1;
+        } else {
+            self.registers[0xF] = 0;
+        }
+
+        self.registers[x] = res;
     }
 
     /// `8xy5`: Subtract `Vx - Vy` and store the result in `Vx`. If `Vx > Vy`, `VF` is set to 1, otherwise 0.
     fn sub_registers(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let vx = self.registers[x];
+        let vy = self.registers[y];
+
+        if vx > vy {
+            self.registers[0xF] = 0x1;
+        } else {
+            self.registers[0xF] = 0x0;
+        }
+
+        self.registers[x] = vx.wrapping_sub(vy);
     }
 
     /// `8xy6`: If the least-significant bit of Vy is 1, then VF is set to 1, otherwise 0.
     /// Then Vy is shifted right by 1 and the result is stored in Vx.
     fn shr(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let vy = self.registers[y];
+
+        let lsb = vy & 0x01;
+
+        if lsb == 1 {
+            self.registers[0xF] = 1;
+        } else {
+            self.registers[0xF] = 0;
+        }
+
+        self.registers[x] = vy >> 1;
     }
 
     /// `8xy7`: Subtract `Vy - Vx` and store the result in `Vx`. If `Vy > Vx`, `VF` is set to 1, otherwise 0.
     fn subn_registers(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let vx = self.registers[x];
+        let vy = self.registers[y];
+
+        if vy > vx {
+            self.registers[0xF] = 0x1;
+        } else {
+            self.registers[0xF] = 0x0;
+        }
+
+        self.registers[x] = vy.wrapping_sub(vx);
     }
 
     /// `8xyE`: If the most-significant bit of Vy is 1, then VF is set to 1, otherwise to 0.
     /// Then Vy is shifted left by 1 and the result is stored in Vx.
     fn shl(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let y = usize::from((opcode & 0x00F0) >> 4);
 
+        let vy = self.registers[y];
+        println!("{:b}", vy);
+
+        let msb = (vy & 0x80) >> 7;
+
+        if msb == 1 {
+            self.registers[0xF] = 0x1;
+        } else {
+            self.registers[0xF] = 0x0;
+        }
+
+        self.registers[x] = vy << 1;
     }
 
     /// `9xy0`: Skip the next instruction if `Vx != Vy`
     fn sne_register(&mut self, opcode: u16) {
+        let x = ((opcode & 0x0F00) >> 8) as u8;
+        let y = ((opcode & 0x00F0) >> 4) as u8;
 
+        let vx = self.registers[usize::from(x)];
+        let vy = self.registers[usize::from(y)];
+
+        if vx != vy {
+            self.pc += 2;
+        }
     }
 
     /// `Annn`: Stores address `nnn` in `self.index_register`
     fn ld_i(&mut self, opcode: u16) {
+        let nnn = opcode & 0x0FFF;
 
+        self.index_register = nnn;
     }
 
     /// `Bnnn`: Jump to the address `nnn + V0`
     fn jmp_v0(&mut self, opcode: u16) {
-
+        let nnn = opcode & 0x0FFF;
+        self.pc = nnn + u16::from(self.registers[0x0]);
     }
 
     /// `Cxkk`: Perform a bitwise AND between a random byte and `kk`. Store the value in `Vx`
     /// `Vx -> RAND & kk`
-    fn rnd(&mut self, opcode: u16) {
+    fn rand(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        let kk = (opcode & 0x00FF) as u8;
 
+        self.registers[x] = self.rand_byte() & kk;
     }
 
     /// `Dxyn`: Read `n` bytes from memory starting at the address stored in `index_register`.
@@ -446,7 +562,7 @@ mod tests {
         let mut c8 = Chip8::_new();
 
         c8.pc = 0x220;
-        c8.registers[10] = 0x32;
+        c8.registers[0xa] = 0x32;
 
         c8.se_byte(0x3abc);
 
@@ -458,9 +574,9 @@ mod tests {
         let mut c8 = Chip8::_new();
 
         c8.pc = 0x220;
-        c8.registers[10] = 0x32;
+        c8.registers[0xa] = 0x32;
 
-        c8.se_byte(0x4abc);
+        c8.sne_byte(0x4abc);
 
         assert_eq!(c8.pc, 0x0222);
     }
@@ -470,9 +586,9 @@ mod tests {
         let mut c8 = Chip8::_new();
 
         c8.pc = 0x220;
-        c8.registers[10] = 0x32;
+        c8.registers[0xa] = 0x32;
 
-        c8.se_byte(0x4a32);
+        c8.sne_byte(0x4a32);
 
         assert_eq!(c8.pc, 0x0220);
     }
@@ -523,6 +639,16 @@ mod tests {
         c8.add_byte(0x7a05);
 
         assert_eq!(c8.registers[0xa], 0x28);
+    }
+
+    #[test]
+    fn test_add_byte_overflow() {
+        let mut c8 = Chip8::_new();
+        c8.registers[0xa] = 0xFF;
+
+        c8.add_byte(0x7a01);
+
+        assert_eq!(c8.registers[0xa], 0x0);
     }
 
     #[test]
@@ -625,7 +751,140 @@ mod tests {
 
         c8.sub_registers(0x8ad5);
         
-        assert_eq!(c8.registers[0xa], 0x1);
+        assert_eq!(c8.registers[0xa], 0x3);
         assert_eq!(c8.registers[0xf], 0x0);
+    }
+
+    #[test]
+    fn test_shr_set_vf() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x0;
+        c8.registers[0xd] = 0x1f;
+        c8.registers[0xf] = 0x0;
+
+        c8.shr(0x8ad5);
+
+        assert_eq!(c8.registers[0xa], 0xf);
+        assert_eq!(c8.registers[0xf], 0x1);
+    }
+
+    #[test]
+    fn test_shr_dont_set_vf() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x0;
+        c8.registers[0xd] = 0x10;
+        c8.registers[0xf] = 0x1;
+
+        c8.shr(0x8ad5);
+
+        assert_eq!(c8.registers[0xa], 0x08);
+        assert_eq!(c8.registers[0xf], 0x0);
+    }
+
+    #[test]
+    fn test_subn_registers() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x02;
+        c8.registers[0xb] = 0x0a;
+        c8.registers[0xf] = 0x0;
+
+        c8.subn_registers(0x8ab7);
+
+        assert_eq!(c8.registers[0xa], 0x08);
+        assert_eq!(c8.registers[0xf], 0x1);
+    }
+
+    #[test]
+    fn test_subn_registers_underflow() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x0a;
+        c8.registers[0xb] = 0x02;
+        c8.registers[0xf] = 0x1;
+
+        c8.subn_registers(0x8ab7);
+
+        assert_eq!(c8.registers[0xa], 0xf8);
+        assert_eq!(c8.registers[0xf], 0x0);
+    }
+
+    #[test]
+    fn test_shl_set_vf() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0xff;
+        c8.registers[0xc] = 0x0;
+        c8.registers[0xf] = 0x0;
+
+        c8.shl(0x8cae);
+
+        assert_eq!(c8.registers[0xc], 0xfe);
+        assert_eq!(c8.registers[0xf], 0x1);
+    }
+
+    #[test]
+    fn test_shl_dont_set_vf() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x7f;
+        c8.registers[0xc] = 0x0;
+        c8.registers[0xf] = 0x1;
+
+        c8.shl(0x8cae);
+
+        assert_eq!(c8.registers[0xc], 0xfe);
+        assert_eq!(c8.registers[0xf], 0x0);
+    }
+
+    #[test]
+    fn test_sne_register_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x206;
+        c8.registers[0xa] = 0x78;
+        c8.registers[0xb] = 0x98;
+
+        c8.sne_register(0x9ab0);
+    
+        assert_eq!(c8.pc, 0x208);
+    }
+
+    #[test]
+    fn test_sne_register_dont_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x206;
+        c8.registers[0xa] = 0x78;
+        c8.registers[0xb] = 0x78;
+
+        c8.sne_register(0x9ab0);
+    
+        assert_eq!(c8.pc, 0x206);
+    }
+
+    #[test]
+    fn test_ld_i() {
+        let mut c8 = Chip8::_new();
+
+        c8.index_register = 0x512;
+
+        c8.ld_i(0xaabc);
+
+        assert_eq!(c8.index_register, 0xabc);
+    }
+
+    #[test]
+    fn test_jmp_v0() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x224;
+        c8.registers[0] = 0x10;
+
+        c8.jmp_v0(0xBabc);
+
+        assert_eq!(c8.pc, 0xacc);
     }
 }
