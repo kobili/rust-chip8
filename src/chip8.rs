@@ -500,6 +500,14 @@ mod tests {
         [1,1,1,1,0,0,0,0],  // 0xF0
     ];
 
+    const ONE_SPRITE: [[u8; 8]; 5] = [
+        [0,0,1,0,0,0,0,0],  // 0x20
+        [0,1,1,0,0,0,0,0],  // 0x60
+        [0,0,1,0,0,0,0,0],  // 0x20
+        [0,0,1,0,0,0,0,0],  // 0x20
+        [0,1,1,1,0,0,0,0],  // 0x70
+    ];
+
     #[test]
     fn test_chip8_constructor() {
         let c8 = Chip8::_new();
@@ -953,15 +961,6 @@ mod tests {
         c8.load_fontset();
 
         // load a 1 on screen starting at (0, 0)
-
-        let expected_pixels = [
-            [0,0,1,0,0,0,0,0],  // 0x20
-            [0,1,1,0,0,0,0,0],  // 0x60
-            [0,0,1,0,0,0,0,0],  // 0x20
-            [0,0,1,0,0,0,0,0],  // 0x20
-            [0,1,1,1,0,0,0,0],  // 0x70
-        ];
-
         // the 1 sprite is located at 0x55 in memory
         c8.index_register = 0x55;
         c8.registers[0xa] = 0x0;
@@ -972,7 +971,7 @@ mod tests {
 
         for i in 0..5 {
             for j in 0..8 {
-                let expected_value = if expected_pixels[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
+                let expected_value = if ONE_SPRITE[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
                 assert_eq!(c8.display_memory[i][j], expected_value);
             }
         }
