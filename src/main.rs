@@ -1,5 +1,6 @@
 mod chip8;
 mod constants;
+mod utils;
 
 use chip8::Chip8;
 
@@ -8,8 +9,8 @@ use chip8::Chip8;
 fn main() {
     let _c8 = Chip8::new("./examples/maze.ch8");
 
-    let a = 0xFFu8;
-    let b = 0x1u8;
+    let mut overlap = false;
 
-    println!("0x{:x} - 0x{:x} == 0x{:x}", a, b, a.wrapping_sub(b));
+    overlap = overlap || (constants::PIXEL_OFF ^ constants::PIXEL_OFF == 0);
+    println!("{}", overlap);
 }

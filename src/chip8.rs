@@ -1,4 +1,5 @@
 use rand::Rng;
+use crate::utils::get_bits_of_byte;
 
 use crate::constants::{
     FONT_SET,
@@ -38,7 +39,7 @@ impl Chip8 {
             delay_timer: 0,
             sound_timer: 0,
             keypad: [0; 16],
-            display_memory: [[0; 64]; 32],
+            display_memory: [[PIXEL_OFF; 64]; 32],
             opcode: 0,
 
             rng: rand::thread_rng(),
@@ -57,7 +58,7 @@ impl Chip8 {
             delay_timer: 0,
             sound_timer: 0,
             keypad: [0; 16],
-            display_memory: [[0; 64]; 32],
+            display_memory: [[PIXEL_OFF; 64]; 32],
 
             opcode: 0,
             rng: rand::thread_rng(),
@@ -365,13 +366,52 @@ impl Chip8 {
     /// `Dxyn`: Read `n` bytes from memory starting at the address stored in `index_register`.
     /// These bytes are then displayed as sprites on screen at coordinates (`Vx`, `Vy`).
     /// 
+    /// Sprites are represented by a collection of bytes. Each byte represents a row of the sprite, and
+    /// each bit in a byte represents a pixel on the screen. For example: a 4 byte sprite will have pixel
+    /// dimensions 8x4: 8px wide, 4px tall.
+    /// 
     /// Sprites are XOR'd onto the existing screen. If this causes any pixels to be erased, `VF` is
     /// set to 1, otherwise it is set to 0.
     /// 
     /// If the sprite is positioned so part of it is outside the coordinates of the display, it wraps
     /// around to the opposite side of the screen
+    /// 
+    /// This instruction does not change `index_register`.
     fn draw(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
+        let vy = self.registers[usize::from((opcode & 0x00F0) >> 4)];
+        let n = usize::from(opcode & 0x000F);
 
+        // read n bytes from memory starting at index_register
+        let mut sprite = vec![0; n];
+        for i in 0..n {
+            sprite[i] = self.memory[self.index_register as usize + i];
+        }
+
+        let mut vf = 0x0_u8;
+
+        // draw the pixels
+        for i in 0..n {
+            let y = (vy as usize + i) % 32;
+            let pixels = get_bits_of_byte(sprite[i]);
+
+            for j in 0..8 {
+                let x = (vx as usize + j) % 64;
+                let pixel_state = pixels[j];
+
+                if pixel_state == 1_u8 {
+                    if self.display_memory[y][x] ^ PIXEL_ON == 0 {
+                        // pixel overlaps with another
+                        vf = 0x1;
+                        self.display_memory[y][x] = PIXEL_OFF;
+                    } else {
+                        self.display_memory[y][x] = PIXEL_ON;
+                    }
+                }
+            }
+        }
+
+        self.registers[0xF] = vf;
     }
 
     /// `Ex9E`: Skip the next instruction if the key with value `Vx` is pressed.
@@ -438,8 +478,19 @@ impl Chip8 {
 }
 
 #[cfg(test)]
+#[allow(dead_code)]
 mod tests {
     use super::*;
+
+    fn print_display_memory(c8: &Chip8) {
+        for i in 0..32 {
+            let mut row = [0u8; 64];
+            for j in 0..64 {
+                row[j] = if c8.display_memory[i][j] != 0 { 1 } else { 0 };
+            }
+            println!("{:?}", row);
+        }
+    }
 
     #[test]
     fn test_chip8_constructor() {
@@ -886,5 +937,118 @@ mod tests {
         c8.jmp_v0(0xBabc);
 
         assert_eq!(c8.pc, 0xacc);
+    }
+
+    #[test]
+    fn test_draw() {
+        let mut c8 = Chip8::_new();
+        c8.load_fontset();
+
+        // load a 1 on screen starting at (0, 0)
+
+        let expected_pixels = [
+            [0,0,1,0,0,0,0,0],  // 0x20
+            [0,1,1,0,0,0,0,0],  // 0x60
+            [0,0,1,0,0,0,0,0],  // 0x20
+            [0,0,1,0,0,0,0,0],  // 0x20
+            [0,1,1,1,0,0,0,0],  // 0x70
+        ];
+
+        // the 1 sprite is located at 0x55 in memory
+        c8.index_register = 0x55;
+        c8.registers[0xa] = 0x0;
+        c8.registers[0xb] = 0x0;
+        c8.registers[0xf] = 0x1;
+        
+        c8.draw(0xdab5);
+
+        for i in 0..5 {
+            for j in 0..8 {
+                let expected_value = if expected_pixels[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
+                assert_eq!(c8.display_memory[i][j], expected_value);
+            }
+        }
+        assert_eq!(c8.registers[0xf], 0x0);
+        assert_eq!(c8.index_register, 0x55);
+    }
+
+    #[test]
+    fn test_draw_overlapping_sprites() {
+        let mut c8 = Chip8::_new();
+        c8.load_fontset();
+
+        // preload a sprite at (1, 1)
+        let zero_sprite = [
+            [1,1,1,1,0,0,0,0],  // 0xF0
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,1,1,1,0,0,0,0],  // 0xF0
+        ];
+
+        for i in 0..5 {
+            for j in 0..8 {
+                c8.display_memory[i+1][j+1] = if zero_sprite[i][j] == 1u8 { PIXEL_ON } else { PIXEL_OFF };
+            }
+        }
+
+        c8.index_register = 0x50;
+        c8.registers[0xa] = 0x1;
+        c8.registers[0xb] = 0x1;
+        c8.registers[0xf] = 0x0;
+
+        c8.draw(0xdab5);
+
+        assert_eq!(c8.registers[0xf], 0x1);
+
+        // our draw operation should have erased our existing 0 sprite
+        for i in 0..32 {
+            for j in 0..64 {
+                assert_eq!(c8.display_memory[i][j], PIXEL_OFF);
+            }
+        }
+
+        assert_eq!(c8.index_register, 0x50);
+    }
+
+    #[test]
+    fn test_draw_overflowing_sprites() {
+        let mut c8 = Chip8::_new();
+        c8.load_fontset();
+
+        let zero_sprite = [
+            [1,1,1,1,0,0,0,0],  // 0xF0
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,0,0,1,0,0,0,0],  // 0x90
+            [1,1,1,1,0,0,0,0],  // 0xF0
+        ];
+
+        let mut expected_display = [[PIXEL_OFF; 64]; 32];
+
+        let x = 61;
+        let y = 29;
+
+        for i in 0..5 {
+            for j in 0..8 {
+                expected_display[(y + i) % 32][(x + j) % 64] = if zero_sprite[i][j] == 1 { PIXEL_ON } else { PIXEL_OFF };
+            }
+        }
+
+        c8.index_register = 0x50;
+        c8.registers[0xa] = x as u8;
+        c8.registers[0xb] = y as u8;
+        c8.registers[0xf] = 0x1;
+
+        c8.draw(0xdab5);
+
+        assert_eq!(c8.index_register, 0x50);
+        assert_eq!(c8.registers[0xf], 0x0);
+
+        for i in 0..32 {
+            for j in 0..64 {
+                assert_eq!(c8.display_memory[i][j], expected_display[i][j]);
+            }
+        }
     }
 }
