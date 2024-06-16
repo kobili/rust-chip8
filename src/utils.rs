@@ -1,7 +1,7 @@
 pub fn get_bits_of_byte(byte: u8) -> [u8; 8] {
     let mut bits: [u8; 8] = [0; 8];
     for i in 0..8 {
-        bits[7 - i] = (byte & (1 << i)) >> i;
+        bits[i] = (byte >> (7 - i)) & 1;
     }
 
     bits
