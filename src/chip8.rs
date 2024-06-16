@@ -120,7 +120,7 @@ impl Chip8 {
     }
 
     /// `00E0`: Completely clear the display memory
-    fn cls(&mut self) {
+    fn cls(&mut self, _opcode: u16) {
         for i in 0..32 {
             for j in 0..64 {
                 self.display_memory[i][j] = PIXEL_OFF;
@@ -129,7 +129,7 @@ impl Chip8 {
     }
 
     /// `00EE`: Return from a subroutine
-    fn ret(&mut self) {
+    fn ret(&mut self, _opcode: u16) {
         self.sp -= 1;
         self.pc = self.stack[self.sp as usize];
     }
@@ -498,6 +498,93 @@ impl Chip8 {
     }
 }
 
+// opcode decoding and instruction router
+impl Chip8 {
+    fn execute_opcode(&mut self, opcode: u16) {
+        let instruction = match self.select_instruction(opcode) {
+            Ok(func) => func,
+            Err(e) => panic!("{}", e),
+        };
+
+        instruction(self, opcode);
+    }
+
+    fn select_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+        let first_digit = (opcode & 0xF000) >> 12;
+        match first_digit {
+            0x0 => self.select_00E_instruction(opcode),
+            0x1 => Ok(Chip8::jmp),
+            0x2 => Ok(Chip8::call),
+            0x3 => Ok(Chip8::se_byte),
+            0x4 => Ok(Chip8::sne_byte),
+            0x5 => Ok(Chip8::se_register),
+            0x6 => Ok(Chip8::ld_byte),
+            0x7 => Ok(Chip8::add_byte),
+            0x8 => self.select_8_instruction(opcode),
+            0x9 => Ok(Chip8::sne_register),
+            0xA => Ok(Chip8::ld_i),
+            0xB => Ok(Chip8::jmp_v0),
+            0xC => Ok(Chip8::rand),
+            0xD => Ok(Chip8::draw),
+            0xE => self.select_E_instruction(opcode),
+            0xF => self.select_F_instruction(opcode),
+            _ => Err("No instruction for opcode"),
+        }
+    }
+
+    fn select_8_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+        let last_digit = opcode & 0xF;
+        match last_digit {
+            0x0 => Ok(Chip8::ld_register),
+            0x1 => Ok(Chip8::or),
+            0x2 => Ok(Chip8::and),
+            0x3 => Ok(Chip8::xor),
+            0x4 => Ok(Chip8::add_registers),
+            0x5 => Ok(Chip8::sub_registers),
+            0x6 => Ok(Chip8::shr),
+            0x7 => Ok(Chip8::subn_registers),
+            0xE => Ok(Chip8::shl),
+            _ => Err("No instruction for opcode"),
+        }
+    }
+
+    fn select_E_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+        let last_two_digits = opcode & 0x00FF;
+        match last_two_digits {
+            0x93 => Ok(Chip8::skip_key_pressed),
+            0xA1 => Ok(Chip8::skip_key_not_pressed),
+            _ => Err("No instruction for opcode"),
+        }
+    }
+
+    fn select_F_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+        let last_two_digits = opcode & 0x00FF;
+
+        match last_two_digits {
+            0x07 => Ok(Chip8::ld_delay_timer),
+            0x0A => Ok(Chip8::ld_key_press),
+            0x15 => Ok(Chip8::set_delay_timer),
+            0x18 => Ok(Chip8::set_sound_timer),
+            0x1E => Ok(Chip8::add_index_register),
+            0x29 => Ok(Chip8::ld_sprite),
+            0x33 => Ok(Chip8::ld_bcd),
+            0x55 => Ok(Chip8::ld_registers_into_index_register),
+            0x65 => Ok(Chip8::read_index_register_into_registers),
+            _ => Err("No instruction for opcode"),
+        }
+    }
+
+    fn select_00E_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+        let last_digit = opcode & 0xF;
+
+        match last_digit {
+            0x0 => Ok(Chip8::cls),
+            0xE => Ok(Chip8::ret),
+            _ => Err("No instruction for opcode"),
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(dead_code)]
 mod tests {
@@ -584,7 +671,7 @@ mod tests {
         c8.display_memory[12][63] = PIXEL_ON;
         c8.display_memory[8][40] = PIXEL_ON;
 
-        c8.cls();
+        c8.cls(0x00e0);
 
         assert_eq!(c8.display_memory[23][35], PIXEL_OFF);
         assert_eq!(c8.display_memory[12][63], PIXEL_OFF);
@@ -600,7 +687,7 @@ mod tests {
         c8.stack[0] = 0x208;
         c8.sp = 1;
 
-        c8.ret();
+        c8.ret(0x00ee);
 
         assert_eq!(c8.pc, 0x208);
         assert_eq!(c8.sp, 0);
