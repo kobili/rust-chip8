@@ -551,7 +551,7 @@ impl Chip8 {
     fn select_E_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
         let last_two_digits = opcode & 0x00FF;
         match last_two_digits {
-            0x93 => Ok(Chip8::skip_key_pressed),
+            0x9E => Ok(Chip8::skip_key_pressed),
             0xA1 => Ok(Chip8::skip_key_not_pressed),
             _ => Err("No instruction for opcode"),
         }
@@ -671,7 +671,7 @@ mod tests {
         c8.display_memory[12][63] = PIXEL_ON;
         c8.display_memory[8][40] = PIXEL_ON;
 
-        c8.cls(0x00e0);
+        c8.execute_opcode(0x00e0);
 
         assert_eq!(c8.display_memory[23][35], PIXEL_OFF);
         assert_eq!(c8.display_memory[12][63], PIXEL_OFF);
@@ -687,7 +687,7 @@ mod tests {
         c8.stack[0] = 0x208;
         c8.sp = 1;
 
-        c8.ret(0x00ee);
+        c8.execute_opcode(0x00ee);
 
         assert_eq!(c8.pc, 0x208);
         assert_eq!(c8.sp, 0);
@@ -699,7 +699,7 @@ mod tests {
 
         c8.pc = 0x220;
 
-        c8.jmp(0x1bea);
+        c8.execute_opcode(0x1bea);
 
         assert_eq!(c8.pc, 0xbea);
     }
@@ -712,7 +712,7 @@ mod tests {
         c8.stack[0] = 0x208;
         c8.sp = 1;
 
-        c8.call(0x2512);
+        c8.execute_opcode(0x2512);
 
         assert_eq!(c8.pc, 0x512);
         assert_eq!(c8.stack[0], 0x208);
@@ -727,7 +727,7 @@ mod tests {
         c8.pc = 0x220;
         c8.registers[10] = 0x32;
 
-        c8.se_byte(0x3a32);
+        c8.execute_opcode(0x3a32);
 
         assert_eq!(c8.pc, 0x0222);
     }
@@ -739,7 +739,7 @@ mod tests {
         c8.pc = 0x220;
         c8.registers[0xa] = 0x32;
 
-        c8.se_byte(0x3abc);
+        c8.execute_opcode(0x3abc);
 
         assert_eq!(c8.pc, 0x0220);
     }
@@ -751,7 +751,7 @@ mod tests {
         c8.pc = 0x220;
         c8.registers[0xa] = 0x32;
 
-        c8.sne_byte(0x4abc);
+        c8.execute_opcode(0x4abc);
 
         assert_eq!(c8.pc, 0x0222);
     }
@@ -763,7 +763,7 @@ mod tests {
         c8.pc = 0x220;
         c8.registers[0xa] = 0x32;
 
-        c8.sne_byte(0x4a32);
+        c8.execute_opcode(0x4a32);
 
         assert_eq!(c8.pc, 0x0220);
     }
@@ -776,7 +776,7 @@ mod tests {
         c8.registers[10] = 0x32;
         c8.registers[3] = 0x32;
 
-        c8.se_register(0x5a30);
+        c8.execute_opcode(0x5a30);
 
         assert_eq!(c8.pc, 0x0222);
     }
@@ -789,7 +789,7 @@ mod tests {
         c8.registers[10] = 0x32;
         c8.registers[3] = 0x31;
 
-        c8.se_register(0x5a30);
+        c8.execute_opcode(0x5a30);
 
         assert_eq!(c8.pc, 0x0220);
     }
@@ -800,7 +800,7 @@ mod tests {
 
         c8.registers[0xa] = 0x23;
 
-        c8.ld_byte(0x6abd);
+        c8.execute_opcode(0x6abd);
 
         assert_eq!(c8.registers[0xa], 0xbd);
     }
@@ -811,7 +811,7 @@ mod tests {
 
         c8.registers[0xa] = 0x23;
 
-        c8.add_byte(0x7a05);
+        c8.execute_opcode(0x7a05);
 
         assert_eq!(c8.registers[0xa], 0x28);
     }
@@ -821,7 +821,7 @@ mod tests {
         let mut c8 = Chip8::_new();
         c8.registers[0xa] = 0xFF;
 
-        c8.add_byte(0x7a01);
+        c8.execute_opcode(0x7a01);
 
         assert_eq!(c8.registers[0xa], 0x0);
     }
@@ -833,7 +833,7 @@ mod tests {
         c8.registers[0xa] = 0x23;
         c8.registers[0xd] = 0x48;
 
-        c8.ld_register(0x8ad0);
+        c8.execute_opcode(0x8ad0);
 
         assert_eq!(c8.registers[0xa], 0x48);
     }
@@ -845,7 +845,7 @@ mod tests {
         c8.registers[0xa] = 0x23;
         c8.registers[0xd] = 0x48;
 
-        c8.or(0x8ad1);
+        c8.execute_opcode(0x8ad1);
 
         assert_eq!(c8.registers[0xa], 0x23 | 0x48);
     }
@@ -857,7 +857,7 @@ mod tests {
         c8.registers[0xa] = 0xF0;
         c8.registers[0xd] = 0x0F;
 
-        c8.and(0x8ad2);
+        c8.execute_opcode(0x8ad2);
 
         assert_eq!(c8.registers[0xa], 0x0);
     }
@@ -869,7 +869,7 @@ mod tests {
         c8.registers[0xa] = 0x23;
         c8.registers[0xd] = 0x48;
 
-        c8.xor(0x8ad3);
+        c8.execute_opcode(0x8ad3);
 
         assert_eq!(c8.registers[0xa], 0x23 ^ 0x48);
     }
@@ -882,7 +882,7 @@ mod tests {
         c8.registers[0xd] = 0x48;
         c8.registers[0xf] = 0x01;
 
-        c8.add_registers(0x8ad4);
+        c8.execute_opcode(0x8ad4);
 
         assert_eq!(c8.registers[0xa], 0x23 + 0x48);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -896,7 +896,7 @@ mod tests {
         c8.registers[0xd] = 0x1;
         c8.registers[0xf] = 0x0;
 
-        c8.add_registers(0x8ad4);
+        c8.execute_opcode(0x8ad4);
 
         assert_eq!(c8.registers[0xa], 0x0);
         assert_eq!(c8.registers[0xf], 0x1);
@@ -910,7 +910,7 @@ mod tests {
         c8.registers[0xd] = 0x1;
         c8.registers[0xf] = 0x0;
 
-        c8.sub_registers(0x8ad5);
+        c8.execute_opcode(0x8ad5);
         
         assert_eq!(c8.registers[0xa], 0xFE);
         assert_eq!(c8.registers[0xf], 0x1);
@@ -924,7 +924,7 @@ mod tests {
         c8.registers[0xd] = 0xFF;
         c8.registers[0xf] = 0x0;
 
-        c8.sub_registers(0x8ad5);
+        c8.execute_opcode(0x8ad5);
         
         assert_eq!(c8.registers[0xa], 0x3);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -938,7 +938,7 @@ mod tests {
         c8.registers[0xd] = 0x1f;
         c8.registers[0xf] = 0x0;
 
-        c8.shr(0x8ad5);
+        c8.execute_opcode(0x8ad6);
 
         assert_eq!(c8.registers[0xa], 0xf);
         assert_eq!(c8.registers[0xf], 0x1);
@@ -952,7 +952,7 @@ mod tests {
         c8.registers[0xd] = 0x10;
         c8.registers[0xf] = 0x1;
 
-        c8.shr(0x8ad5);
+        c8.execute_opcode(0x8ad6);
 
         assert_eq!(c8.registers[0xa], 0x08);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -966,7 +966,7 @@ mod tests {
         c8.registers[0xb] = 0x0a;
         c8.registers[0xf] = 0x0;
 
-        c8.subn_registers(0x8ab7);
+        c8.execute_opcode(0x8ab7);
 
         assert_eq!(c8.registers[0xa], 0x08);
         assert_eq!(c8.registers[0xf], 0x1);
@@ -980,7 +980,7 @@ mod tests {
         c8.registers[0xb] = 0x02;
         c8.registers[0xf] = 0x1;
 
-        c8.subn_registers(0x8ab7);
+        c8.execute_opcode(0x8ab7);
 
         assert_eq!(c8.registers[0xa], 0xf8);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -994,7 +994,7 @@ mod tests {
         c8.registers[0xc] = 0x0;
         c8.registers[0xf] = 0x0;
 
-        c8.shl(0x8cae);
+        c8.execute_opcode(0x8cae);
 
         assert_eq!(c8.registers[0xc], 0xfe);
         assert_eq!(c8.registers[0xf], 0x1);
@@ -1008,7 +1008,7 @@ mod tests {
         c8.registers[0xc] = 0x0;
         c8.registers[0xf] = 0x1;
 
-        c8.shl(0x8cae);
+        c8.execute_opcode(0x8cae);
 
         assert_eq!(c8.registers[0xc], 0xfe);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -1022,7 +1022,7 @@ mod tests {
         c8.registers[0xa] = 0x78;
         c8.registers[0xb] = 0x98;
 
-        c8.sne_register(0x9ab0);
+        c8.execute_opcode(0x9ab0);
     
         assert_eq!(c8.pc, 0x208);
     }
@@ -1035,7 +1035,7 @@ mod tests {
         c8.registers[0xa] = 0x78;
         c8.registers[0xb] = 0x78;
 
-        c8.sne_register(0x9ab0);
+        c8.execute_opcode(0x9ab0);
     
         assert_eq!(c8.pc, 0x206);
     }
@@ -1046,7 +1046,7 @@ mod tests {
 
         c8.index_register = 0x512;
 
-        c8.ld_i(0xaabc);
+        c8.execute_opcode(0xaabc);
 
         assert_eq!(c8.index_register, 0xabc);
     }
@@ -1058,7 +1058,7 @@ mod tests {
         c8.pc = 0x224;
         c8.registers[0] = 0x10;
 
-        c8.jmp_v0(0xBabc);
+        c8.execute_opcode(0xBabc);
 
         assert_eq!(c8.pc, 0xacc);
     }
@@ -1075,7 +1075,7 @@ mod tests {
         c8.registers[0xb] = 0x0;
         c8.registers[0xf] = 0x1;
         
-        c8.draw(0xdab5);
+        c8.execute_opcode(0xdab5);
 
         for i in 0..5 {
             for j in 0..8 {
@@ -1104,7 +1104,7 @@ mod tests {
         c8.registers[0xb] = 0x1;
         c8.registers[0xf] = 0x0;
 
-        c8.draw(0xdab5);
+        c8.execute_opcode(0xdab5);
 
         assert_eq!(c8.registers[0xf], 0x1);
 
@@ -1140,7 +1140,7 @@ mod tests {
         c8.registers[0xb] = y as u8;
         c8.registers[0xf] = 0x1;
 
-        c8.draw(0xdab5);
+        c8.execute_opcode(0xdab5);
 
         assert_eq!(c8.index_register, 0x50);
         assert_eq!(c8.registers[0xf], 0x0);
@@ -1160,7 +1160,7 @@ mod tests {
         c8.keypad[2] = 1;
         c8.registers[0xa] = 2;
 
-        c8.skip_key_pressed(0xea9e);
+        c8.execute_opcode(0xea9e);
 
         assert_eq!(c8.pc, 0x226);
     }
@@ -1173,7 +1173,7 @@ mod tests {
         c8.keypad[2] = 0;
         c8.registers[0xa] = 2;
 
-        c8.skip_key_pressed(0xea9e);
+        c8.execute_opcode(0xea9e);
 
         assert_eq!(c8.pc, 0x224);
     }
@@ -1186,7 +1186,7 @@ mod tests {
         c8.keypad[2] = 0;
         c8.registers[0xa] = 2;
 
-        c8.skip_key_not_pressed(0xeaa1);
+        c8.execute_opcode(0xeaa1);
 
         assert_eq!(c8.pc, 0x226);
     }
@@ -1199,7 +1199,7 @@ mod tests {
         c8.keypad[2] = 1;
         c8.registers[0xa] = 2;
 
-        c8.skip_key_not_pressed(0xeaa1);
+        c8.execute_opcode(0xeaa1);
 
         assert_eq!(c8.pc, 0x224);
     }
@@ -1209,7 +1209,7 @@ mod tests {
         let mut c8 = Chip8::_new();
         c8.delay_timer = 0x20;
 
-        c8.ld_delay_timer(0xfa07);
+        c8.execute_opcode(0xfa07);
 
         assert_eq!(c8.registers[0xa], 0x20);
     }
@@ -1219,7 +1219,7 @@ mod tests {
         let mut c8 = Chip8::_new();
         c8.registers[0xa] = 0x50;
 
-        c8.set_delay_timer(0xfa15);
+        c8.execute_opcode(0xfa15);
 
         assert_eq!(c8.delay_timer, 0x50);
     }
@@ -1230,7 +1230,7 @@ mod tests {
 
         c8.keypad[0xf] = 1;
 
-        c8.ld_key_press(0xfa0a);
+        c8.execute_opcode(0xfa0a);
 
         assert_eq!(c8.registers[0xa], 0xf);
     }
@@ -1240,7 +1240,7 @@ mod tests {
         let mut c8 = Chip8::_new();
 
         c8.pc = 0x204;
-        c8.ld_key_press(0xfa0a);
+        c8.execute_opcode(0xfa0a);
 
         assert_eq!(c8.pc, 0x202);
     }
@@ -1251,7 +1251,7 @@ mod tests {
 
         c8.registers[0xa] = 0x20;
 
-        c8.set_sound_timer(0xfa18);
+        c8.execute_opcode(0xfa18);
 
         assert_eq!(c8.sound_timer, 0x20);
     }
@@ -1263,7 +1263,7 @@ mod tests {
         c8.registers[0xa] = 0x2;
         c8.index_register = 0x220;
 
-        c8.add_index_register(0xfa1e);
+        c8.execute_opcode(0xfa1e);
 
         assert_eq!(c8.index_register, 0x222);
     }
@@ -1275,7 +1275,7 @@ mod tests {
         c8.registers[0xa] = 0x2;
         c8.index_register = 0xFFFF;
 
-        c8.add_index_register(0xfa1e);
+        c8.execute_opcode(0xfa1e);
 
         assert_eq!(c8.index_register, 0x1);
     }
@@ -1286,7 +1286,7 @@ mod tests {
 
         c8.registers[0xa] = 0x4;
 
-        c8.ld_sprite(0xfa29);
+        c8.execute_opcode(0xfa29);
 
         assert_eq!(c8.index_register, 0x64);
     }
@@ -1297,7 +1297,7 @@ mod tests {
 
         c8.registers[0xa] = 0x0;
 
-        c8.ld_sprite(0xfa29);
+        c8.execute_opcode(0xfa29);
 
         assert_eq!(c8.index_register, 0x50);
     }
@@ -1309,7 +1309,7 @@ mod tests {
         c8.registers[0xa] = 0xFE; // 254
         c8.index_register = 0x100;
 
-        c8.ld_bcd(0xfa33);
+        c8.execute_opcode(0xfa33);
 
         assert_eq!(c8.memory[0x100], 2);
         assert_eq!(c8.memory[0x101], 5);
@@ -1323,7 +1323,7 @@ mod tests {
         c8.registers[0xa] = 0x10; // 16
         c8.index_register = 0x100;
 
-        c8.ld_bcd(0xfa33);
+        c8.execute_opcode(0xfa33);
 
         assert_eq!(c8.memory[0x100], 0);
         assert_eq!(c8.memory[0x101], 1);
@@ -1337,7 +1337,7 @@ mod tests {
         c8.registers[0xa] = 0x2; // 2
         c8.index_register = 0x100;
 
-        c8.ld_bcd(0xfa33);
+        c8.execute_opcode(0xfa33);
 
         assert_eq!(c8.memory[0x100], 0);
         assert_eq!(c8.memory[0x101], 0);
@@ -1355,7 +1355,7 @@ mod tests {
         c8.registers[0x4] = 0x5;
         c8.index_register = 0x100;
 
-        c8.ld_registers_into_index_register(0xf455);
+        c8.execute_opcode(0xf455);
 
         assert_eq!(c8.index_register, 0x105);
 
@@ -1378,7 +1378,7 @@ mod tests {
 
         c8.index_register = 0x100;
 
-        c8.read_index_register_into_registers(0xf465);
+        c8.execute_opcode(0xf465);
 
         assert_eq!(c8.index_register, 0x105);
 
