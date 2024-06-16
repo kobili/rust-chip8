@@ -1,6 +1,7 @@
 mod chip8;
 mod constants;
 mod utils;
+mod screen;
 
 use chip8::Chip8;
 
@@ -12,4 +13,6 @@ fn main() {
 
     let opcode = 0xA222;
     println!("{:x}", (opcode & 0xF000) >> 12);
+
+    screen::draw_screen();
 }
