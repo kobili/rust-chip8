@@ -245,12 +245,7 @@ impl Chip8 {
 
         let res = self.registers[x].wrapping_add(self.registers[y]);
 
-        if res < self.registers[x] {
-            // an overflow happened
-            self.registers[0xF] = 1;
-        } else {
-            self.registers[0xF] = 0;
-        }
+        self.registers[0xF] = if res < self.registers[x] { 1 } else { 0 };
 
         self.registers[x] = res;
     }
@@ -263,11 +258,7 @@ impl Chip8 {
         let vx = self.registers[x];
         let vy = self.registers[y];
 
-        if vx > vy {
-            self.registers[0xF] = 0x1;
-        } else {
-            self.registers[0xF] = 0x0;
-        }
+        self.registers[0xF] = if vx > vy { 0x1 } else { 0x0 };
 
         self.registers[x] = vx.wrapping_sub(vy);
     }
@@ -282,11 +273,7 @@ impl Chip8 {
 
         let lsb = vy & 0x01;
 
-        if lsb == 1 {
-            self.registers[0xF] = 1;
-        } else {
-            self.registers[0xF] = 0;
-        }
+        self.registers[0xF] = if lsb == 1 { 1 } else { 0 };
 
         self.registers[x] = vy >> 1;
     }
@@ -299,11 +286,7 @@ impl Chip8 {
         let vx = self.registers[x];
         let vy = self.registers[y];
 
-        if vy > vx {
-            self.registers[0xF] = 0x1;
-        } else {
-            self.registers[0xF] = 0x0;
-        }
+        self.registers[0xF] = if vy > vx { 0x1 } else { 0x0 };
 
         self.registers[x] = vy.wrapping_sub(vx);
     }
@@ -319,11 +302,7 @@ impl Chip8 {
 
         let msb = (vy & 0x80) >> 7;
 
-        if msb == 1 {
-            self.registers[0xF] = 0x1;
-        } else {
-            self.registers[0xF] = 0x0;
-        }
+        self.registers[0xF] = if msb == 1 { 0x1 } else { 0x0 };
 
         self.registers[x] = vy << 1;
     }
@@ -416,42 +395,66 @@ impl Chip8 {
 
     /// `Ex9E`: Skip the next instruction if the key with value `Vx` is pressed.
     fn skip_key_pressed(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        if self.keypad[vx as usize] == 1 {
+            self.pc += 2;
+        }
     }
 
     /// `ExA1`: Skip the next instruction if the key with value `Vx` is not pressed.
     fn skip_key_not_pressed(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        if self.keypad[vx as usize] == 0 {
+            self.pc += 2;
+        }
     }
 
-    /// `Fx07`: Set `Vx -> delay_timer`
+    /// `Fx07`: Set `Vx = delay_timer`
     fn ld_delay_timer(&mut self, opcode: u16) {
-
+        let x = usize::from((opcode & 0x0F00) >> 8);
+        self.registers[x] = self.delay_timer;
     }
 
     /// `Fx0A`: Wait for a key press and store the value of the key in `Vx`
     /// 
     /// All executions stop until a key is pressed.
     fn ld_key_press(&mut self, opcode: u16) {
+        let x = usize::from((opcode & 0x0F00) >> 8);
 
+        for i in 0..self.keypad.len() {
+            if self.keypad[i] != 0 {
+                self.registers[x] = i as u8;
+                return;
+            }
+        }
+
+        // none of the keys are pressed. Wait by running this op again on the next cycle
+        self.pc -= 2;
     }
 
     /// `Fx15`: Set the delay_timer to the value of `Vx`
     fn set_delay_timer(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        self.delay_timer = vx;
     }
 
     /// `Fx18`: Set the sound_timer to the value of `Vx`
     fn set_sound_timer(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        self.sound_timer = vx;
     }
 
     /// `Fx1E`: Add `index_register` and `Vx` and store the result in `index_register`
     fn add_index_register(&mut self, opcode: u16) {
-
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
+        self.index_register = self.index_register.wrapping_add(vx as u16);
     }
 
-    /// `Fx29`: Load the address of the spirte corresponding to the value of `Vx` into `index_register`.
+    /// `Fx29`: Load the address of the sprite corresponding to the value of `Vx` into `index_register`.
     fn ld_sprite(&mut self, opcode: u16) {
 
     }
@@ -1042,5 +1045,133 @@ mod tests {
                 assert_eq!(c8.display_memory[i][j], expected_display[i][j]);
             }
         }
+    }
+
+    #[test]
+    fn test_skip_key_pressed() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x224;
+        c8.keypad[2] = 1;
+        c8.registers[0xa] = 2;
+
+        c8.skip_key_pressed(0xea9e);
+
+        assert_eq!(c8.pc, 0x226);
+    }
+
+    #[test]
+    fn test_skip_key_pressed_no_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x224;
+        c8.keypad[2] = 0;
+        c8.registers[0xa] = 2;
+
+        c8.skip_key_pressed(0xea9e);
+
+        assert_eq!(c8.pc, 0x224);
+    }
+
+    #[test]
+    fn test_skip_key_not_pressed() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x224;
+        c8.keypad[2] = 0;
+        c8.registers[0xa] = 2;
+
+        c8.skip_key_not_pressed(0xeaa1);
+
+        assert_eq!(c8.pc, 0x226);
+    }
+
+    #[test]
+    fn test_skip_key_not_pressed_no_skip() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x224;
+        c8.keypad[2] = 1;
+        c8.registers[0xa] = 2;
+
+        c8.skip_key_not_pressed(0xeaa1);
+
+        assert_eq!(c8.pc, 0x224);
+    }
+
+    #[test]
+    fn test_ld_delay_timer() {
+        let mut c8 = Chip8::_new();
+        c8.delay_timer = 0x20;
+
+        c8.ld_delay_timer(0xfa07);
+
+        assert_eq!(c8.registers[0xa], 0x20);
+    }
+
+    #[test]
+    fn test_set_delay_timer() {
+        let mut c8 = Chip8::_new();
+        c8.registers[0xa] = 0x50;
+
+        c8.set_delay_timer(0xfa15);
+
+        assert_eq!(c8.delay_timer, 0x50);
+    }
+
+    #[test]
+    fn test_ld_key_press() {
+        let mut c8 = Chip8::_new();
+
+        c8.keypad[0xf] = 1;
+
+        c8.ld_key_press(0xfa0a);
+
+        assert_eq!(c8.registers[0xa], 0xf);
+    }
+
+    #[test]
+    fn test_ld_key_press_no_keys_pressed() {
+        let mut c8 = Chip8::_new();
+
+        c8.pc = 0x204;
+        c8.ld_key_press(0xfa0a);
+
+        assert_eq!(c8.pc, 0x202);
+    }
+
+    #[test]
+    fn test_set_sound_timer() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x20;
+
+        c8.set_sound_timer(0xfa18);
+
+        assert_eq!(c8.sound_timer, 0x20);
+    }
+
+    #[test]
+    fn test_add_index_register() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x2;
+        c8.index_register = 0x220;
+
+        c8.add_index_register(0xfa1e);
+
+        assert_eq!(c8.index_register, 0x222);
+    }
+
+    #[test]
+    fn test_add_index_register_overflow() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x2;
+        c8.index_register = 0xFFFF;
+
+        c8.add_index_register(0xfa1e);
+
+        assert_eq!(c8.index_register, 0x1);
     }
 }
