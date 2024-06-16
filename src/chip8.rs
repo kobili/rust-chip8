@@ -21,7 +21,6 @@ pub struct Chip8 {
     sound_timer: u8,
     keypad: [u8; 16],
     display_memory: [[u32; 64]; 32],
-    opcode: u16,
 
     rng: rand::rngs::ThreadRng,
 }
@@ -40,7 +39,6 @@ impl Chip8 {
             sound_timer: 0,
             keypad: [0; 16],
             display_memory: [[PIXEL_OFF; 64]; 32],
-            opcode: 0,
 
             rng: rand::thread_rng(),
         }
@@ -60,7 +58,6 @@ impl Chip8 {
             keypad: [0; 16],
             display_memory: [[PIXEL_OFF; 64]; 32],
 
-            opcode: 0,
             rng: rand::thread_rng(),
         };
         c8.load_fontset();
@@ -500,7 +497,7 @@ impl Chip8 {
 
 // opcode decoding and instruction router
 impl Chip8 {
-    fn execute_opcode(&mut self, opcode: u16) {
+    pub fn execute_opcode(&mut self, opcode: u16) {
         let instruction = match self.select_instruction(opcode) {
             Ok(func) => func,
             Err(e) => panic!("{}", e),
@@ -512,7 +509,7 @@ impl Chip8 {
     fn select_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
         let first_digit = (opcode & 0xF000) >> 12;
         match first_digit {
-            0x0 => self.select_00E_instruction(opcode),
+            0x0 => self.select_00e_instruction(opcode),
             0x1 => Ok(Chip8::jmp),
             0x2 => Ok(Chip8::call),
             0x3 => Ok(Chip8::se_byte),
@@ -526,8 +523,8 @@ impl Chip8 {
             0xB => Ok(Chip8::jmp_v0),
             0xC => Ok(Chip8::rand),
             0xD => Ok(Chip8::draw),
-            0xE => self.select_E_instruction(opcode),
-            0xF => self.select_F_instruction(opcode),
+            0xE => self.select_e_instruction(opcode),
+            0xF => self.select_f_instruction(opcode),
             _ => Err("No instruction for opcode"),
         }
     }
@@ -548,7 +545,7 @@ impl Chip8 {
         }
     }
 
-    fn select_E_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+    fn select_e_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
         let last_two_digits = opcode & 0x00FF;
         match last_two_digits {
             0x9E => Ok(Chip8::skip_key_pressed),
@@ -557,7 +554,7 @@ impl Chip8 {
         }
     }
 
-    fn select_F_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+    fn select_f_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
         let last_two_digits = opcode & 0x00FF;
 
         match last_two_digits {
@@ -574,7 +571,7 @@ impl Chip8 {
         }
     }
 
-    fn select_00E_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
+    fn select_00e_instruction(&self, opcode: u16) -> Result<fn(&mut Chip8, u16), &'static str> {
         let last_digit = opcode & 0xF;
 
         match last_digit {
