@@ -456,7 +456,9 @@ impl Chip8 {
 
     /// `Fx29`: Load the address of the sprite corresponding to the value of `Vx` into `index_register`.
     fn ld_sprite(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        self.index_register = u16::from(0x50 + (vx * 5));
     }
 
     /// `Fx33`:  Store BCD (binary-coded decimal) representation of `Vx` in
@@ -465,18 +467,34 @@ impl Chip8 {
     /// Take the decimal value of Vx, and place the hundreds digit in memory at location in `index_register`,
     /// the tens digit at location `index_register+1`, and the ones digit at location `index_register+2`.
     fn ld_bcd(&mut self, opcode: u16) {
+        let vx = self.registers[usize::from((opcode & 0x0F00) >> 8)];
 
+        self.memory[usize::from(self.index_register)] = vx / 100;
+        self.memory[usize::from(self.index_register + 1)] = (vx / 10) % 10;
+        self.memory[usize::from(self.index_register + 2)] = vx % 10;
     }
 
     /// `Fx55`: Store registers `V0` through `Vx` into memory starting at the address in `index_register`
     fn ld_registers_into_index_register(&mut self, opcode: u16) {
+        let x = (opcode & 0x0F00) >> 8;
 
+        for i in 0..=x {
+            self.memory[usize::from(self.index_register + i)] = self.registers[i as usize];
+        }
+
+        self.index_register = self.index_register + x + 1;
     }
 
     /// `Fx65`: Read values in memory starting at the address in `index_register`, storing them into registers
     /// `V0` to `Vx`
     fn read_index_register_into_registers(&mut self, opcode: u16) {
+        let x = (opcode & 0x0F00) >> 8;
 
+        for i in 0..=x {
+            self.registers[i as usize] = self.memory[usize::from(self.index_register + i)];
+        }
+
+        self.index_register = self.index_register + x + 1;
     }
 }
 
@@ -1173,5 +1191,114 @@ mod tests {
         c8.add_index_register(0xfa1e);
 
         assert_eq!(c8.index_register, 0x1);
+    }
+
+    #[test]
+    fn test_ld_sprite() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x4;
+
+        c8.ld_sprite(0xfa29);
+
+        assert_eq!(c8.index_register, 0x64);
+    }
+
+    #[test]
+    fn test_ld_sprite_zero() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x0;
+
+        c8.ld_sprite(0xfa29);
+
+        assert_eq!(c8.index_register, 0x50);
+    }
+
+    #[test]
+    fn test_ld_bcd() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0xFE; // 254
+        c8.index_register = 0x100;
+
+        c8.ld_bcd(0xfa33);
+
+        assert_eq!(c8.memory[0x100], 2);
+        assert_eq!(c8.memory[0x101], 5);
+        assert_eq!(c8.memory[0x102], 4);
+    }
+
+    #[test]
+    fn test_ld_bcd_double_digits() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x10; // 16
+        c8.index_register = 0x100;
+
+        c8.ld_bcd(0xfa33);
+
+        assert_eq!(c8.memory[0x100], 0);
+        assert_eq!(c8.memory[0x101], 1);
+        assert_eq!(c8.memory[0x102], 6);
+    }
+
+    #[test]
+    fn test_ld_bcd_single_digits() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0xa] = 0x2; // 2
+        c8.index_register = 0x100;
+
+        c8.ld_bcd(0xfa33);
+
+        assert_eq!(c8.memory[0x100], 0);
+        assert_eq!(c8.memory[0x101], 0);
+        assert_eq!(c8.memory[0x102], 2);
+    }
+
+    #[test]
+    fn test_ld_registers_into_index_register() {
+        let mut c8 = Chip8::_new();
+
+        c8.registers[0x0] = 0x1;
+        c8.registers[0x1] = 0x2;
+        c8.registers[0x2] = 0x3;
+        c8.registers[0x3] = 0x4;
+        c8.registers[0x4] = 0x5;
+        c8.index_register = 0x100;
+
+        c8.ld_registers_into_index_register(0xf455);
+
+        assert_eq!(c8.index_register, 0x105);
+
+        assert_eq!(c8.memory[0x100], 0x1);
+        assert_eq!(c8.memory[0x101], 0x2);
+        assert_eq!(c8.memory[0x102], 0x3);
+        assert_eq!(c8.memory[0x103], 0x4);
+        assert_eq!(c8.memory[0x104], 0x5);
+    }
+
+    #[test]
+    fn test_read_index_register_into_registers() {
+        let mut c8 = Chip8::_new();
+
+        c8.memory[0x100] = 0x1;
+        c8.memory[0x101] = 0x2;
+        c8.memory[0x102] = 0x3;
+        c8.memory[0x103] = 0x4;
+        c8.memory[0x104] = 0x5;
+
+        c8.index_register = 0x100;
+
+        c8.read_index_register_into_registers(0xf465);
+
+        assert_eq!(c8.index_register, 0x105);
+
+        assert_eq!(c8.registers[0], 0x1);
+        assert_eq!(c8.registers[1], 0x2);
+        assert_eq!(c8.registers[2], 0x3);
+        assert_eq!(c8.registers[3], 0x4);
+        assert_eq!(c8.registers[4], 0x5);
     }
 }
