@@ -582,6 +582,29 @@ impl Chip8 {
     }
 }
 
+// CPU functionality
+impl Chip8 {
+    fn cycle(&mut self) {
+        // fetch the next instruction
+        let opcode_first_byte = self.memory[self.pc as usize] as u16;
+        let opcode_second_byte = self.memory[usize::from(self.pc + 1)] as u16;
+        let opcode = (opcode_second_byte << 8) | opcode_first_byte;
+
+        // increment pc before executing
+        self.pc += 2;
+
+        self.execute_opcode(opcode);
+
+        if self.delay_timer > 0 {
+            self.delay_timer -= 1;
+        }
+
+        if self.sound_timer > 0 {
+            self.sound_timer -= 1;
+        }
+    }
+}
+
 #[cfg(test)]
 #[allow(dead_code)]
 mod tests {
@@ -1384,5 +1407,47 @@ mod tests {
         assert_eq!(c8.registers[2], 0x3);
         assert_eq!(c8.registers[3], 0x4);
         assert_eq!(c8.registers[4], 0x5);
+    }
+
+    #[test]
+    fn test_cycle() {
+        let mut c8 = Chip8::_new();
+
+        // load an instruction into memory and set it to the next op
+        c8.pc = 0x200;
+        c8.memory[0x200] = 0xb5;
+        c8.memory[0x201] = 0xda;
+
+        // set delay and sound timers
+        c8.delay_timer = 3;
+        c8.sound_timer = 4;
+
+        // use setup for test_draw_overlapping_sprites
+        c8.load_fontset();
+        for i in 0..5 {
+            for j in 0..8 {
+                c8.display_memory[i+1][j+1] = if ZERO_SPRITE[i][j] == 1u8 { PIXEL_ON } else { PIXEL_OFF };
+            }
+        }
+        c8.index_register = 0x50;
+        c8.registers[0xa] = 0x1;
+        c8.registers[0xb] = 0x1;
+        c8.registers[0xf] = 0x0;
+
+        c8.cycle();
+
+        // assert cycle operations
+        assert_eq!(c8.pc, 0x202);
+        assert_eq!(c8.delay_timer, 2);
+        assert_eq!(c8.sound_timer, 3);
+
+        // assertions from test_draw_overlapping_sprites
+        assert_eq!(c8.registers[0xf], 0x1);
+        for i in 0..32 {
+            for j in 0..64 {
+                assert_eq!(c8.display_memory[i][j], PIXEL_OFF);
+            }
+        }
+        assert_eq!(c8.index_register, 0x50);
     }
 }
