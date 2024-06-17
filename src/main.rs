@@ -1,9 +1,7 @@
-mod chip8;
-mod constants;
-mod utils;
+mod emulator;
 mod screen;
 
-use chip8::Chip8;
+use emulator::chip8::Chip8;
 
 
 #[allow(arithmetic_overflow)]

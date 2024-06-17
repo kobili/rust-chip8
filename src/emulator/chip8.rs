@@ -1,7 +1,7 @@
 use rand::Rng;
-use crate::utils::get_bits_of_byte;
+use super::utils::get_bits_of_byte;
 
-use crate::constants::{
+use super::constants::{
     FONT_SET,
     FONT_SET_START_ADDRESS,
     PIXEL_OFF,
