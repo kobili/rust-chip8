@@ -12,15 +12,16 @@ use std::collections::HashMap;
 
 
 pub fn update(canvas: &mut Canvas<Window>, texture: &mut Texture, display_memory: &[[u32; 64]; 32], pitch: u32) {
-    let mut buffer : [u8; 64 * 32] = [0; 64 * 32];
+    let mut buffer : [u8; 64 * 32 * 4] = [0; 64 * 32 * 4];
 
     // flatten the display input
-    // TODO: Might cause a slowdown; try to flatten the display memory at the emulator level
+    // TODO: Might cause a slowdown if we do this with every cpu cycle; try to flatten the display memory at the emulator level
     for i in 0..display_memory.len() {
         let row = display_memory[i];
         let row_offset = i * row.len();
         for j in 0..row.len() {
-            buffer[j + row_offset] = row[j] as u8;
+            let start_index = j + row_offset;
+            buffer[4*start_index..][..4].copy_from_slice(&row[j].to_le_bytes());
         }
     }
 

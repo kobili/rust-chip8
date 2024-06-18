@@ -497,6 +497,7 @@ impl Chip8 {
 // opcode decoding and instruction router
 impl Chip8 {
     pub fn execute_opcode(&mut self, opcode: u16) {
+        // println!("Executing opcode: 0x{:x}", opcode);
         let instruction = match self.select_instruction(opcode) {
             Ok(func) => func,
             Err(e) => panic!("{}", e),

@@ -92,4 +92,6 @@ fn main() {
             screen::update(&mut canvas, &mut texture, &c8.get_display_memory(), video_pitch as u32);
         }
     }
+
+    // println!("{:?}", c8.get_display_memory())
 }
