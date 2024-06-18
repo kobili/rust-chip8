@@ -584,7 +584,7 @@ impl Chip8 {
 
 // CPU functionality
 impl Chip8 {
-    fn cycle(&mut self) {
+    pub fn cycle(&mut self) {
         // fetch the next instruction
         let opcode_first_byte = self.memory[self.pc as usize] as u16;
         let opcode_second_byte = self.memory[usize::from(self.pc + 1)] as u16;
@@ -609,6 +609,10 @@ impl Chip8 {
 impl Chip8 {
     pub fn get_display_memory(&self) -> [[u32; 64]; 32] {
         self.display_memory
+    }
+
+    pub fn get_keypad(&mut self) -> &mut [u8; 16] {
+        &mut self.keypad
     }
 }
 
