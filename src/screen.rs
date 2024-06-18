@@ -3,6 +3,7 @@ extern crate sdl2;
 use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use std::ptr::null;
 use std::time::Duration;
 
 struct Screen {
@@ -39,6 +40,33 @@ impl Screen {
         self.texture_creator.create_texture(
             sdl2::pixels::PixelFormatEnum::RGBA8888, sdl2::render::TextureAccess::Streaming, 64, 32
         ).unwrap()
+    }
+
+    pub fn update(&mut self, texture: &mut sdl2::render::Texture, display_memory: &[[u32; 64]; 32], pitch: u32) {
+        let mut buffer : [u8; 64 * 32] = [0; 64 * 32];
+
+        // flatten the display input
+        for i in 0..display_memory.len() {
+            let row = display_memory[i];
+            let row_offset = i + row.len();
+            for j in 0..row.len() {
+                buffer[j + row_offset] = row[j] as u8;
+            }
+        }
+
+        match texture.update(Option::None, &buffer, pitch.try_into().unwrap()) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e),
+        };
+
+        self.canvas.clear();
+
+        match self.canvas.copy(texture, Option::None, Option::None) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e),
+        }
+
+        self.canvas.present();
     }
 }
 
