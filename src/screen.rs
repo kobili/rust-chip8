@@ -10,6 +10,9 @@ struct Screen {
     sdl_context: sdl2::Sdl,
     canvas: sdl2::render::Canvas<sdl2::video::Window>,
     texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
+    event_pump: sdl2::EventPump,
+
+    key_mapping: std::collections::HashMap<sdl2::keyboard::Keycode, u8>,
 }
 
 impl Screen {
@@ -29,10 +32,39 @@ impl Screen {
 
         let texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext> = canvas.texture_creator();
 
+        let event_pump = match sdl_context.event_pump() {
+            Ok(value) => value,
+            Err(e) => panic!("{}", e),
+        };
+
+        let keymapping: std::collections::HashMap<sdl2::keyboard::Keycode, u8> = std::collections::HashMap::from([
+            (Keycode::NUM_1, 1),
+            (Keycode::NUM_2, 2),
+            (Keycode::NUM_3, 3),
+            (Keycode::NUM_4, 0xC),
+
+            (Keycode::Q, 4),
+            (Keycode::W, 5),
+            (Keycode::E, 6),
+            (Keycode::R, 0xD),
+
+            (Keycode::A, 7),
+            (Keycode::S, 8),
+            (Keycode::D, 9),
+            (Keycode::F, 0xE),
+
+            (Keycode::Z, 0xA),
+            (Keycode::X, 0),
+            (Keycode::C, 0xB),
+            (Keycode::V, 0xF),
+        ]);
+
         Self {
             sdl_context: sdl_context,
             canvas: canvas,
             texture_creator: texture_creator,
+            event_pump: event_pump,
+            key_mapping: keymapping,
         }
     }
 
@@ -46,9 +78,10 @@ impl Screen {
         let mut buffer : [u8; 64 * 32] = [0; 64 * 32];
 
         // flatten the display input
+        // TODO: Might cause a slowdown; try to flatten the display memory at the emulator level
         for i in 0..display_memory.len() {
             let row = display_memory[i];
-            let row_offset = i + row.len();
+            let row_offset = i * row.len();
             for j in 0..row.len() {
                 buffer[j + row_offset] = row[j] as u8;
             }
@@ -67,6 +100,58 @@ impl Screen {
         }
 
         self.canvas.present();
+    }
+
+    /// Polls an SDL EventPump for key events. Updates the input keymap accordingly.
+    /// 
+    /// If a quit event occurs, returns true. Otherwise false.
+    pub fn process_input(&mut self, keys: &mut [u8; 16]) -> bool {
+        let mut quit = false;
+
+        'event_poll: for event in self.event_pump.poll_iter() {
+            match event {
+                Event::Quit{..} => {
+                    quit = true;
+                    break 'event_poll;
+                },
+                Event::KeyDown { keycode, ..} => {
+                    match keycode {
+                        Some(Keycode::NUM_1) => keys[1] = 1,
+                        Some(Keycode::NUM_2) => keys[2] = 1,
+                        Some(Keycode::NUM_3) => keys[3] = 1,
+                        Some(Keycode::NUM_4) => keys[0xC] = 1,
+                        Some(Keycode::Q) => keys[4] = 1,
+                        Some(Keycode::W) => keys[5] = 1,
+                        Some(Keycode::E) => keys[6] = 1,
+                        Some(Keycode::R) => keys[0xD] = 1,
+
+                        Some(Keycode::A) => keys[7] = 1,
+                        Some(Keycode::S) => keys[8] = 1,
+                        Some(Keycode::D) => keys[9] = 1,
+                        Some(Keycode::F) => keys[0xE] = 1,
+
+                        Some(Keycode::Z) => keys[0xA] = 1,
+                        Some(Keycode::X) => keys[0] = 1,
+                        Some(Keycode::C) => keys[0xB] = 1,
+                        Some(Keycode::V) => keys[0xF] = 1,
+                        Some(_) | None => {},
+                    }
+                }
+                Event::KeyUp { keycode, .. } => {
+                    match keycode {
+                        Some(keycode) => {
+                            if self.key_mapping.contains_key(&keycode) {
+                                let key_value = *self.key_mapping.get(&keycode).unwrap();
+                                keys[usize::from(key_value)] = 0;
+                            }
+                        },
+                        None => {},
+                    }
+                }
+                _ => {},
+            }
+        }
+        quit
     }
 }
 
