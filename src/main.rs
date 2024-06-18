@@ -1,9 +1,8 @@
+extern crate sdl2;
 mod emulator;
 mod screen;
 
 use emulator::chip8::Chip8;
-
-extern crate sdl2;
 
 use sdl2::keyboard::Keycode;
 use sdl2::render::{
@@ -70,7 +69,7 @@ fn main() {
     let mut c8 = Chip8::new("./examples/test_opcode.ch8");
 
     let cycle_delay = 4;
-    let video_pitch = (std::mem::size_of_val(&c8.get_display_memory()[0][0]) * 32) as u32;
+    let video_pitch = (std::mem::size_of_val(&c8.get_display_memory()[0][0]) * 64) as u32;
     
     let mut last_cycle_time = std::time::SystemTime::now();
 
@@ -90,7 +89,7 @@ fn main() {
 
             c8.cycle();
 
-            screen::update(&mut canvas, &mut texture, &c8.get_display_memory(), video_pitch);
+            screen::update(&mut canvas, &mut texture, &c8.get_display_memory(), video_pitch as u32);
         }
     }
 }

@@ -51,6 +51,10 @@ pub fn process_input(event_pump: &mut EventPump, keys: &mut [u8; 16], key_mappin
             },
             Event::KeyDown { keycode, ..} => {
                 match keycode {
+                    Some(Keycode::ESCAPE) => {
+                        quit = true;
+                        break 'event_poll;
+                    },
                     Some(Keycode::NUM_1) => keys[1] = 1,
                     Some(Keycode::NUM_2) => keys[2] = 1,
                     Some(Keycode::NUM_3) => keys[3] = 1,

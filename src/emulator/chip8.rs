@@ -295,7 +295,6 @@ impl Chip8 {
         let y = usize::from((opcode & 0x00F0) >> 4);
 
         let vy = self.registers[y];
-        println!("{:b}", vy);
 
         let msb = (vy & 0x80) >> 7;
 
