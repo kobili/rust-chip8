@@ -5,6 +5,43 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 
+struct Screen {
+    sdl_context: sdl2::Sdl,
+    canvas: sdl2::render::Canvas<sdl2::video::Window>,
+    texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
+}
+
+impl Screen {
+    pub fn new(name: &str) -> Self {
+        let sdl_context = sdl2::init().unwrap();
+        let video_subsystem  = sdl_context.video().unwrap();
+
+        let window = video_subsystem.window(name, 800, 600)
+            .position_centered()
+            .build()
+            .unwrap();
+
+        let canvas = window.into_canvas()
+            .accelerated()
+            .build()
+            .unwrap();
+
+        let texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext> = canvas.texture_creator();
+
+        Self {
+            sdl_context: sdl_context,
+            canvas: canvas,
+            texture_creator: texture_creator,
+        }
+    }
+
+    pub fn create_texture(&self) -> sdl2::render::Texture {
+        self.texture_creator.create_texture(
+            sdl2::pixels::PixelFormatEnum::RGBA8888, sdl2::render::TextureAccess::Streaming, 64, 32
+        ).unwrap()
+    }
+}
+
 pub fn draw_screen() {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();

@@ -605,6 +605,13 @@ impl Chip8 {
     }
 }
 
+// accessors
+impl Chip8 {
+    pub fn get_display_memory(&self) -> [[u32; 64]; 32] {
+        self.display_memory
+    }
+}
+
 #[cfg(test)]
 #[allow(dead_code)]
 mod tests {
