@@ -1,18 +1,30 @@
 extern crate sdl2;
 
-use sdl2::pixels::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use std::ptr::null;
-use std::time::Duration;
+use sdl2::render::{
+    Canvas,
+    TextureCreator, 
+    Texture,
+    TextureAccess,
+};
+use sdl2::{
+    Sdl,
+    EventPump,
+};
+use sdl2::video::{
+    Window,
+    WindowContext,
+};
+use sdl2::pixels::PixelFormatEnum;
 
-struct Screen {
-    sdl_context: sdl2::Sdl,
-    canvas: sdl2::render::Canvas<sdl2::video::Window>,
-    texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext>,
-    event_pump: sdl2::EventPump,
+pub struct Screen {
+    sdl_context: Sdl,
+    canvas: Canvas<Window>,
+    texture_creator: TextureCreator<WindowContext>,
+    event_pump: EventPump,
 
-    key_mapping: std::collections::HashMap<sdl2::keyboard::Keycode, u8>,
+    key_mapping: std::collections::HashMap<Keycode, u8>,
 }
 
 impl Screen {
@@ -30,14 +42,14 @@ impl Screen {
             .build()
             .unwrap();
 
-        let texture_creator: sdl2::render::TextureCreator<sdl2::video::WindowContext> = canvas.texture_creator();
+        let texture_creator: TextureCreator<WindowContext> = canvas.texture_creator();
 
         let event_pump = match sdl_context.event_pump() {
             Ok(value) => value,
             Err(e) => panic!("{}", e),
         };
 
-        let keymapping: std::collections::HashMap<sdl2::keyboard::Keycode, u8> = std::collections::HashMap::from([
+        let keymapping = std::collections::HashMap::from([
             (Keycode::NUM_1, 1),
             (Keycode::NUM_2, 2),
             (Keycode::NUM_3, 3),
@@ -68,13 +80,13 @@ impl Screen {
         }
     }
 
-    pub fn create_texture(&self) -> sdl2::render::Texture {
+    pub fn create_texture(&self) -> Texture {
         self.texture_creator.create_texture(
-            sdl2::pixels::PixelFormatEnum::RGBA8888, sdl2::render::TextureAccess::Streaming, 64, 32
+            PixelFormatEnum::RGBA8888, TextureAccess::Streaming, 64, 32
         ).unwrap()
     }
 
-    pub fn update(&mut self, texture: &mut sdl2::render::Texture, display_memory: &[[u32; 64]; 32], pitch: u32) {
+    pub fn update(&mut self, texture: &mut Texture, display_memory: &[[u32; 64]; 32], pitch: u32) {
         let mut buffer : [u8; 64 * 32] = [0; 64 * 32];
 
         // flatten the display input
@@ -152,41 +164,5 @@ impl Screen {
             }
         }
         quit
-    }
-}
-
-pub fn draw_screen() {
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
-
-    let window = video_subsystem.window("rust-sdl2 demo", 800, 600)
-        .position_centered()
-        .build()
-        .unwrap();
-
-    let mut canvas = window.into_canvas().build().unwrap();
-
-    canvas.set_draw_color(Color::RGB(0, 255, 255));
-    canvas.clear();
-    canvas.present();
-    let mut event_pump = sdl_context.event_pump().unwrap();
-    let mut i = 0;
-    'running: loop {
-        i = (i + 1) % 255;
-        canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
-        canvas.clear();
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit {..} |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
-                    break 'running
-                },
-                _ => {}
-            }
-        }
-        // The rest of the game loop goes here...
-
-        canvas.present();
-        ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
 }
